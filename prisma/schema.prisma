@@ -179,6 +179,7 @@ model Order {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   items           OrderItem[]
+  feedback        OrderFeedback?
 
   @@unique([cafeId, orderNumber])
   @@index([cafeId, status])
@@ -264,4 +265,13 @@ model LoyaltyProfile {
 
   @@unique([cafeId, phone])
   @@index([cafeId, phone])
+}
+
+model OrderFeedback {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
 }
