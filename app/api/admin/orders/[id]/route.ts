@@ -1,6 +1,6 @@
 import { requireCafeUser } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, badRequest, notFound, serverError, handleAuthError } from "@/lib/api/response";
+import { ok, unauthorized, badRequest, notFound, handleAuthError } from "@/lib/api/response";
 import { canTransition, isValidStatus } from "@/lib/orders/status-machine";
 
 export async function PATCH(
@@ -40,6 +40,5 @@ export async function PATCH(
     return ok({ order: updated });
   } catch (error: any) {
     return handleAuthError(error);
-    return serverError(error);
   }
 }

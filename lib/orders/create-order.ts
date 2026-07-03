@@ -70,49 +70,37 @@ export async function createOrder(
     orderItemsData.push(priced.data);
   }
 
-  const MAX_RETRIES = 3;
+  try {
+    const order = await db.$transaction(async (tx) => {
+      const orderNumber = await getNextOrderNumber(tx, cafe.id);
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-    try {
-      const order = await db.$transaction(async (tx) => {
-        const orderNumber = await getNextOrderNumber(tx, cafe.id);
-
-        return tx.order.create({
-          data: {
-            cafeId: cafe.id,
-            orderNumber,
-            type: input.type,
-            status: "NEW",
-            paymentStatus: "UNPAID",
-            tableId,
-            customerName: input.customerName || null,
-            customerPhone: input.customerPhone || null,
-            customerNote: input.customerNote || null,
-            subtotalCents,
-            totalCents: subtotalCents,
-            items: { create: orderItemsData },
-          },
-        });
+      return tx.order.create({
+        data: {
+          cafeId: cafe.id,
+          orderNumber,
+          type: input.type,
+          status: "NEW",
+          paymentStatus: "UNPAID",
+          tableId,
+          customerName: input.customerName || null,
+          customerPhone: input.customerPhone || null,
+          customerNote: input.customerNote || null,
+          subtotalCents,
+          totalCents: subtotalCents,
+          items: { create: orderItemsData },
+        },
       });
+    });
 
-      return success({
-        orderId: order.id,
-        orderNumber: order.orderNumber,
-        status: order.status,
-        paymentStatus: order.paymentStatus,
-        totalCents: order.totalCents,
-      });
-    } catch (err: any) {
-      const isUniqueConflict =
-        err?.code === "P2002" &&
-        err?.meta?.target?.includes("orderNumber");
-
-      if (isUniqueConflict && attempt < MAX_RETRIES - 1) {
-        continue;
-      }
-      throw err;
-    }
+    return success({
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
+      totalCents: order.totalCents,
+    });
+  } catch (err) {
+    console.error("Failed to create order:", err);
+    return failure("Failed to create order due to an internal error.");
   }
-
-  return failure("Failed to create order due to a conflict. Please try again.");
 }

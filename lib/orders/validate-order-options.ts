@@ -34,6 +34,10 @@ export function validateItemOptions(
       return `${optDef.name} is required`;
     }
 
+    if (optDef.type === "SINGLE" && count > 1) {
+      return `${optDef.name} allows at most 1 selection`;
+    }
+
     if (optDef.maxSelect > 0 && count > optDef.maxSelect) {
       return `${optDef.name} allows at most ${optDef.maxSelect} selection(s)`;
     }

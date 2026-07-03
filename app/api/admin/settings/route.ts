@@ -1,6 +1,6 @@
 import { requireSettingsAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, notFound, serverError, handleAuthError } from "@/lib/api/response";
+import { ok, unauthorized, notFound, handleAuthError } from "@/lib/api/response";
 
 export async function GET() {
   try {
@@ -17,7 +17,6 @@ export async function GET() {
     return ok({ cafe, settings: cafe.settings });
   } catch (error: any) {
     return handleAuthError(error);
-    return serverError(error);
   }
 }
 
@@ -55,6 +54,5 @@ export async function PATCH(request: Request) {
     return ok({ success: true });
   } catch (error: any) {
     return handleAuthError(error);
-    return serverError(error);
   }
 }

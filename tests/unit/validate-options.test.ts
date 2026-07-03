@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateItemOptions } from "@/lib/orders/validate-order-options";
+import { findDuplicateOptionSelections } from "@/lib/orders/validate-duplicates";
 
 function makeOption(overrides: any = {}) {
   return {
@@ -11,8 +12,8 @@ function makeOption(overrides: any = {}) {
     minSelect: 1,
     maxSelect: 1,
     values: [
-      { id: "val-1", optionId: "opt-1", name: "Small", priceCents: 0, sortOrder: 1 },
-      { id: "val-2", optionId: "opt-1", name: "Medium", priceCents: 100, sortOrder: 2 },
+      { id: "val-1", name: "Small", priceCents: 0, sortOrder: 1 },
+      { id: "val-2", name: "Medium", priceCents: 100, sortOrder: 2 },
     ],
     ...overrides,
   };
@@ -39,7 +40,7 @@ describe("validateItemOptions", () => {
     expect(result).toBe("Size requires at least 2 selection(s)");
   });
 
-  it("fails when max select is exceeded", () => {
+  it("fails when max select is exceeded for MULTIPLE option", () => {
     const result = validateItemOptions(
       [makeOption({ type: "MULTIPLE", maxSelect: 1, required: false })],
       [
@@ -48,6 +49,28 @@ describe("validateItemOptions", () => {
       ]
     );
     expect(result).toBe("Size allows at most 1 selection(s)");
+  });
+
+  it("allows multiple different values for MULTIPLE option", () => {
+    const result = validateItemOptions(
+      [makeOption({ type: "MULTIPLE", maxSelect: 5, required: false })],
+      [
+        { optionId: "opt-1", valueId: "val-1" },
+        { optionId: "opt-1", valueId: "val-2" },
+      ]
+    );
+    expect(result).toBeNull();
+  });
+
+  it("rejects multiple values for SINGLE option", () => {
+    const result = validateItemOptions(
+      [makeOption({ type: "SINGLE", maxSelect: 3 })],
+      [
+        { optionId: "opt-1", valueId: "val-1" },
+        { optionId: "opt-1", valueId: "val-2" },
+      ]
+    );
+    expect(result).toBe("Size allows at most 1 selection");
   });
 
   it("passes for optional skipped option", () => {
@@ -60,6 +83,36 @@ describe("validateItemOptions", () => {
 
   it("passes with no options defined", () => {
     const result = validateItemOptions([], []);
+    expect(result).toBeNull();
+  });
+});
+
+describe("findDuplicateOptionSelections", () => {
+  it("rejects duplicate same optionId + same valueId", () => {
+    const result = findDuplicateOptionSelections([
+      { optionId: "opt-1", valueId: "val-1" },
+      { optionId: "opt-1", valueId: "val-1" },
+    ]);
+    expect(result).toBe("Duplicate option selection: opt-1/val-1");
+  });
+
+  it("allows different values for same optionId", () => {
+    const result = findDuplicateOptionSelections([
+      { optionId: "opt-1", valueId: "val-1" },
+      { optionId: "opt-1", valueId: "val-2" },
+    ]);
+    expect(result).toBeNull();
+  });
+
+  it("passes with empty selections", () => {
+    const result = findDuplicateOptionSelections([]);
+    expect(result).toBeNull();
+  });
+
+  it("passes with single selection", () => {
+    const result = findDuplicateOptionSelections([
+      { optionId: "opt-1", valueId: "val-1" },
+    ]);
     expect(result).toBeNull();
   });
 });

@@ -1,6 +1,6 @@
 import { requireTableAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, badRequest, notFound, serverError, handleAuthError } from "@/lib/api/response";
+import { ok, unauthorized, badRequest, notFound, handleAuthError } from "@/lib/api/response";
 import crypto from "node:crypto";
 
 export async function PATCH(
@@ -34,7 +34,6 @@ export async function PATCH(
     return ok({ table: updated });
   } catch (error: any) {
     return handleAuthError(error);
-    return serverError(error);
   }
 }
 
@@ -61,6 +60,5 @@ export async function DELETE(
     return ok({ success: true });
   } catch (error: any) {
     return handleAuthError(error);
-    return serverError(error);
   }
 }
