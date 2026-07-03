@@ -91,6 +91,7 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
       menuItems={menuItems}
       tableToken={tableToken}
       preselectedTableId={preselectedTableId}
+      uberEatsUrl={cafe.settings?.uberEatsUrl || null}
     />
   );
 }

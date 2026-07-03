@@ -12,6 +12,7 @@ type CafeWithMenu = Prisma.CafeGetPayload<{
       include: { items: { include: { options: { include: { values: true } } } } };
     };
     theme: true;
+    settings: true;
     sections: {
       where: { publishedAt: { not: null }; publishedDeletedAt: null };
       orderBy: { sortOrder: "asc" };
@@ -52,6 +53,7 @@ export default async function CafePage({ params }: PageProps) {
         },
       },
       theme: true,
+      settings: true,
       sections: {
         where: { publishedAt: { not: null }, publishedDeletedAt: null },
         orderBy: { sortOrder: "asc" },
@@ -95,14 +97,26 @@ export default async function CafePage({ params }: PageProps) {
               {cafe.address && <p className="text-[10px] opacity-70 flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3" /> {cafe.address}</p>}
             </div>
           </div>
-          <Link
-            href={`/cafe/${cafe.slug}/order`}
-            style={{ backgroundColor: accentColor }}
-            className="inline-flex h-10 items-center justify-center rounded-xl text-white px-5 text-sm font-bold shadow-lg shadow-amber-950/10 active:scale-95 transition-all hover:opacity-90"
-          >
-            Order Now
-            <ArrowRight className="h-4 w-4 ml-2" />
-          </Link>
+          <div className="flex items-center gap-3">
+            {cafe.settings?.uberEatsUrl && (
+              <a
+                href={cafe.settings.uberEatsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex h-10 items-center justify-center rounded-xl bg-[#06C167] text-white px-5 text-sm font-bold shadow-lg shadow-green-900/10 active:scale-95 transition-all hover:bg-[#05a357]"
+              >
+                Order Delivery
+              </a>
+            )}
+            <Link
+              href={`/cafe/${cafe.slug}/order`}
+              style={{ backgroundColor: accentColor }}
+              className="inline-flex h-10 items-center justify-center rounded-xl text-white px-5 text-sm font-bold shadow-lg shadow-amber-950/10 active:scale-95 transition-all hover:opacity-90"
+            >
+              Order Now
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Link>
+          </div>
         </header>
 
         {/* Hero image banner */}
@@ -191,13 +205,25 @@ export default async function CafePage({ params }: PageProps) {
             {cafe.address && <p className="text-[10px] text-stone-500 flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3" /> {cafe.address}</p>}
           </div>
         </div>
-        <Link
-          href={`/cafe/${cafe.slug}/order`}
-          className="inline-flex h-10 items-center justify-center rounded-xl bg-amber-700 text-white px-5 text-sm font-bold shadow-lg shadow-amber-900/10 active:scale-95 transition-all hover:bg-amber-800"
-        >
-          Order Now
-          <ArrowRight className="h-4 w-4 ml-2" />
-        </Link>
+        <div className="flex items-center gap-3">
+          {cafe.settings?.uberEatsUrl && (
+            <a
+              href={cafe.settings.uberEatsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:inline-flex h-10 items-center justify-center rounded-xl bg-[#06C167] text-white px-5 text-sm font-bold shadow-lg shadow-green-900/10 active:scale-95 transition-all hover:bg-[#05a357]"
+            >
+              Order Delivery
+            </a>
+          )}
+          <Link
+            href={`/cafe/${cafe.slug}/order`}
+            className="inline-flex h-10 items-center justify-center rounded-xl bg-amber-700 text-white px-5 text-sm font-bold shadow-lg shadow-amber-900/10 active:scale-95 transition-all hover:bg-amber-800"
+          >
+            Order Now
+            <ArrowRight className="h-4 w-4 ml-2" />
+          </Link>
+        </div>
       </header>
 
       <div className="w-full max-w-4xl mx-auto px-4 py-10 flex-1">

@@ -86,6 +86,7 @@ model CafeSettings {
   acceptPickup        Boolean  @default(true)
   acceptPayAtCounter  Boolean  @default(true)
   acceptOnlinePayment Boolean  @default(false)
+  uberEatsUrl         String?
   openingHoursJson    Json?
 }
 

@@ -50,6 +50,7 @@ interface OrderClientProps {
   menuItems: MenuCategory[];
   tableToken?: string;
   preselectedTableId: string | null;
+  uberEatsUrl?: string | null;
 }
 
 function generateId(): string {
@@ -62,6 +63,7 @@ export function OrderClient({
   menuItems,
   tableToken,
   preselectedTableId,
+  uberEatsUrl,
 }: OrderClientProps) {
   const { addItem, itemCount } = useCart();
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -112,8 +114,20 @@ export function OrderClient({
             </div>
           </div>
 
-          {/* Customer auth button */}
-          <CustomerAuthButton cafeSlug={cafeSlug} />
+          <div className="flex items-center gap-3">
+            {uberEatsUrl && (
+              <a
+                href={uberEatsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex h-8 items-center justify-center rounded-lg bg-[#06C167] text-white px-3 text-xs font-bold shadow-sm active:scale-95 transition-all hover:bg-[#05a357]"
+              >
+                Order Delivery
+              </a>
+            )}
+            {/* Customer auth button */}
+            <CustomerAuthButton cafeSlug={cafeSlug} />
+          </div>
         </div>
       </header>
 
