@@ -89,7 +89,19 @@ export async function createOrder(
           totalCents: subtotalCents,
           items: { create: orderItemsData },
         },
+        include: {
+          items: true,
+          table: { select: { tableNumber: true } },
+        },
       });
+    });
+
+    // Publish the created event for real-time order sync
+    const { publishOrderEvent } = await import("./order-events");
+    publishOrderEvent({
+      cafeId: cafe.id,
+      type: "CREATED",
+      order,
     });
 
     return success({

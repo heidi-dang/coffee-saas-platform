@@ -144,8 +144,35 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+
+    const eventSource = new EventSource("/api/admin/orders/stream");
+
+    eventSource.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.type === "CREATED") {
+          setOrders((prev) => {
+            if (prev.some((o) => o.id === payload.order.id)) return prev;
+            return [payload.order, ...prev];
+          });
+        } else if (payload.type === "UPDATED") {
+          setOrders((prev) =>
+            prev.map((o) => (o.id === payload.order.id ? payload.order : o))
+          );
+        }
+      } catch (err) {
+        console.error("Error processing order update:", err);
+      }
+    };
+
+    eventSource.onerror = () => {
+      // Re-fetch data on error/disconnect to ensure state consistency
+      fetchData();
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [fetchData]);
 
   async function handleStatusUpdate(orderId: string, newStatus: string) {
