@@ -206,11 +206,6 @@ enum PageSectionType {
   CUSTOM_TEXT
 }
 
-enum PageSectionStatus {
-  DRAFT
-  PUBLISHED
-}
-
 model CafeTheme {
   id              String   @id @default(cuid())
   cafeId          String   @unique
@@ -231,18 +226,20 @@ model CafeTheme {
 }
 
 model CafePageSection {
-  id        String            @id @default(cuid())
-  cafeId    String
-  cafe      Cafe              @relation(fields: [cafeId], references: [id])
-  type      PageSectionType
-  title     String?
-  content   Json
-  sortOrder Int               @default(0)
-  isVisible Boolean           @default(true)
-  status    PageSectionStatus @default(DRAFT)
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id               String            @id @default(cuid())
+  cafeId           String
+  cafe             Cafe              @relation(fields: [cafeId], references: [id])
+  type             PageSectionType
+  draftTitle       String?
+  publishedTitle   String?
+  draftContent     Json
+  publishedContent Json?
+  sortOrder        Int               @default(0)
+  isVisible        Boolean           @default(true)
+  isPublished      Boolean           @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 
-  @@index([cafeId, status])
+  @@index([cafeId, isPublished])
   @@index([cafeId, sortOrder])
 }

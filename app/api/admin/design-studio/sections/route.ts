@@ -9,7 +9,7 @@ export async function GET() {
     const cafeId = user.cafeId;
 
     const sections = await db.cafePageSection.findMany({
-      where: { cafeId },
+      where: { cafeId, isPublished: false },
       orderBy: { sortOrder: "asc" },
     });
 
@@ -32,11 +32,11 @@ export async function POST(request: Request) {
       data: {
         cafeId,
         type: parsed.type,
-        title: parsed.title,
-        content: parsed.content,
+        draftTitle: parsed.title,
+        draftContent: parsed.content,
         sortOrder: parsed.sortOrder,
         isVisible: parsed.isVisible,
-        status: "DRAFT",
+        isPublished: false,
       },
     });
 

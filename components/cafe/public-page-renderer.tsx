@@ -12,7 +12,15 @@ export function PublicPageRenderer({ theme, sections }: PublicPageRendererProps)
     fontFamily: theme.fontFamily === "system" ? undefined : theme.fontFamily ?? undefined,
   };
 
-  const visibleSections = sections.filter((s) => s.isVisible);
+  const visibleSections = sections.filter((s) => s.isVisible && s.isPublished);
+
+  if (visibleSections.length === 0) {
+    return (
+      <div style={style} className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-400">No content published yet</p>
+      </div>
+    );
+  }
 
   return (
     <div style={style} className="min-h-screen">
@@ -24,23 +32,17 @@ export function PublicPageRenderer({ theme, sections }: PublicPageRendererProps)
       {theme.heroImageUrl && (
         <img src={theme.heroImageUrl} alt="Hero" className="w-full h-64 object-cover" />
       )}
-      {visibleSections.length === 0 ? (
-        <div className="flex items-center justify-center py-20 text-gray-400">
-          <p>No content published yet</p>
-        </div>
-      ) : (
-        <div className="mx-auto max-w-4xl space-y-8 py-8 px-4">
-          {visibleSections.map((section) => (
-            <SectionBlock key={section.id} section={section} accentColor={theme.accentColor ?? "#f59e0b"} />
-          ))}
-        </div>
-      )}
+      <div className="mx-auto max-w-4xl space-y-8 py-8 px-4">
+        {visibleSections.map((section) => (
+          <SectionBlock key={section.id} section={section} accentColor={theme.accentColor ?? "#f59e0b"} />
+        ))}
+      </div>
     </div>
   );
 }
 
 function SectionBlock({ section, accentColor }: { section: CafePageSection; accentColor: string }) {
-  const content = section.content as Record<string, unknown> | null;
+  const content = section.publishedContent as Record<string, unknown> | null;
   const text = content?.text as string | undefined;
   const imageUrl = content?.imageUrl as string | undefined;
   const buttonLabel = content?.buttonLabel as string | undefined;
@@ -48,7 +50,7 @@ function SectionBlock({ section, accentColor }: { section: CafePageSection; acce
 
   return (
     <div className="rounded-lg border p-6" style={{ borderColor: accentColor }}>
-      {section.title && <h2 className="text-2xl font-bold mb-3">{section.title}</h2>}
+      {section.publishedTitle && <h2 className="text-2xl font-bold mb-3">{section.publishedTitle}</h2>}
       {text && <p className="text-base leading-relaxed">{text}</p>}
       {imageUrl && (
         <img src={imageUrl} alt="" className="mt-4 h-48 w-full rounded-lg object-cover" />

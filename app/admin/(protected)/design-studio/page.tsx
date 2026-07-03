@@ -40,6 +40,10 @@ export default function DesignStudioPage() {
         </div>
       </div>
 
+      <p className="text-xs text-gray-500 -mt-4">
+        Draft changes are not visible to customers until you publish.
+      </p>
+
       <div className="flex gap-4 border-b pb-2">
         {(["sections", "theme", "preview"] as const).map((t) => (
           <button

@@ -24,8 +24,8 @@ export function SectionList() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this section?")) return;
+  const handleHide = async (id: string) => {
+    if (!confirm("Hide this section?")) return;
     await deleteSection(id);
     load();
   };
@@ -44,6 +44,10 @@ export function SectionList() {
         </button>
       </div>
 
+      <p className="text-xs text-gray-500">
+        Draft changes are not visible to customers until you publish.
+      </p>
+
       {editing === "new" && (
         <SectionEditor existing={null} onDone={() => { setEditing(null); load(); }} />
       )}
@@ -60,7 +64,7 @@ export function SectionList() {
               key={s.id}
               section={s}
               onEdit={(sec) => setEditing(sec)}
-              onDelete={handleDelete}
+              onDelete={handleHide}
             />
           ))}
         </div>

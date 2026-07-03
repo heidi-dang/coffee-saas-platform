@@ -16,14 +16,14 @@ export function SectionCard({ section, onEdit, onDelete }: SectionCardProps) {
           <span className="rounded bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
             {section.type}
           </span>
-          {section.title && <span className="font-medium">{section.title}</span>}
+          {section.draftTitle && <span className="font-medium">{section.draftTitle}</span>}
           <span className="text-xs text-gray-500">#{section.sortOrder}</span>
           {!section.isVisible && (
             <span className="text-xs text-gray-400">(hidden)</span>
           )}
-          <span className={`ml-2 text-xs ${section.status === "PUBLISHED" ? "text-green-600" : "text-amber-600"}`}>
-            {section.status}
-          </span>
+          {section.isPublished && (
+            <span className="text-xs text-green-600 font-medium">published</span>
+          )}
         </div>
       </div>
       <div className="flex gap-2">
@@ -37,7 +37,7 @@ export function SectionCard({ section, onEdit, onDelete }: SectionCardProps) {
           onClick={() => onDelete(section.id)}
           className="rounded bg-red-50 px-3 py-1 text-xs text-red-600 hover:bg-red-100"
         >
-          Delete
+          Hide
         </button>
       </div>
     </div>

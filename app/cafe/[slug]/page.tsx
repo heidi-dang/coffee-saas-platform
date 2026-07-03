@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { PublicPageRenderer } from "@/components/cafe/public-page-renderer";
+import { hasPublishedDesign, getPublicTheme } from "@/lib/design-studio/helpers";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 type CafeWithMenu = Prisma.CafeGetPayload<{
@@ -10,7 +11,7 @@ type CafeWithMenu = Prisma.CafeGetPayload<{
     };
     theme: true;
     sections: {
-      where: { isVisible: true; status: "PUBLISHED" };
+      where: { isPublished: true };
       orderBy: { sortOrder: "asc" };
     };
   };
@@ -50,7 +51,7 @@ export default async function CafePage({ params }: PageProps) {
       },
       theme: true,
       sections: {
-        where: { isVisible: true, status: "PUBLISHED" },
+        where: { isPublished: true },
         orderBy: { sortOrder: "asc" },
       },
     },
@@ -60,9 +61,7 @@ export default async function CafePage({ params }: PageProps) {
     notFound();
   }
 
-  const hasPublishedDesign = cafe.theme?.publishedData !== null && cafe.sections.length > 0;
-
-  if (hasPublishedDesign && cafe.theme) {
+  if (hasPublishedDesign(cafe.theme, cafe.sections) && cafe.theme) {
     return (
       <>
         <PublicPageRenderer theme={cafe.theme} sections={cafe.sections} />

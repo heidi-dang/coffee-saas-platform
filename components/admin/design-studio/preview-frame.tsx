@@ -48,18 +48,18 @@ export function PreviewFrame() {
         <div className="space-y-6">
           {sections.filter((s) => s.isVisible).map((s) => (
             <div key={s.id} className="rounded-lg border p-4" style={{ borderColor: theme.accentColor }}>
-              {s.title && <h3 className="text-lg font-bold" style={{ color: theme.primaryColor }}>{s.title}</h3>}
-              {(s.content as any)?.text && <p className="mt-2">{s.content.text}</p>}
-              {(s.content as any)?.imageUrl && (
-                <img src={s.content.imageUrl} alt="" className="mt-2 h-32 w-full rounded object-cover" />
+              {s.draftTitle && <h3 className="text-lg font-bold" style={{ color: theme.primaryColor }}>{s.draftTitle}</h3>}
+              {(s.draftContent as any)?.text && <p className="mt-2">{(s.draftContent as any).text}</p>}
+              {(s.draftContent as any)?.imageUrl && (
+                <img src={(s.draftContent as any).imageUrl} alt="" className="mt-2 h-32 w-full rounded object-cover" />
               )}
-              {(s.content as any)?.buttonLabel && (
+              {(s.draftContent as any)?.buttonLabel && (
                 <a
-                  href={(s.content as any)?.buttonUrl || "#"}
+                  href={(s.draftContent as any)?.buttonUrl || "#"}
                   className="mt-3 inline-block rounded px-4 py-2 text-sm font-medium text-white"
                   style={{ backgroundColor: theme.accentColor }}
                 >
-                  {s.content.buttonLabel}
+                  {(s.draftContent as any).buttonLabel}
                 </a>
               )}
             </div>

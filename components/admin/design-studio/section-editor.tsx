@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import type { CafePageSection } from "@/lib/generated/prisma/client";
 import { createSection, updateSection } from "@/lib/api/admin-design-studio-client";
 
@@ -9,15 +9,23 @@ interface SectionEditorProps {
   onDone: () => void;
 }
 
-const TYPES = ["HERO", "ABOUT", "FEATURED_MENU", "GALLERY", "ANNOUNCEMENT", "CONTACT", "CUSTOM_TEXT"];
+const TYPES = [
+  { value: "HERO", label: "Hero — Main top banner" },
+  { value: "ABOUT", label: "About — Café story" },
+  { value: "FEATURED_MENU", label: "Featured Menu — Popular items" },
+  { value: "GALLERY", label: "Gallery — Photos" },
+  { value: "ANNOUNCEMENT", label: "Announcement — Promo or notice" },
+  { value: "CONTACT", label: "Contact — Address and hours" },
+  { value: "CUSTOM_TEXT", label: "Custom Text — Extra content" },
+];
 
 export function SectionEditor({ existing, onDone }: SectionEditorProps) {
   const [type, setType] = useState<string>(existing?.type || "CUSTOM_TEXT");
-  const [title, setTitle] = useState(existing?.title || "");
-  const [contentText, setContentText] = useState((existing?.content as any)?.text || "");
-  const [imageUrl, setImageUrl] = useState((existing?.content as any)?.imageUrl || "");
-  const [buttonLabel, setButtonLabel] = useState((existing?.content as any)?.buttonLabel || "");
-  const [buttonUrl, setButtonUrl] = useState((existing?.content as any)?.buttonUrl || "");
+  const [title, setTitle] = useState(existing?.draftTitle || "");
+  const [contentText, setContentText] = useState((existing?.draftContent as any)?.text || "");
+  const [imageUrl, setImageUrl] = useState((existing?.draftContent as any)?.imageUrl || "");
+  const [buttonLabel, setButtonLabel] = useState((existing?.draftContent as any)?.buttonLabel || "");
+  const [buttonUrl, setButtonUrl] = useState((existing?.draftContent as any)?.buttonUrl || "");
   const [isVisible, setIsVisible] = useState(existing?.isVisible ?? true);
   const [sortOrder, setSortOrder] = useState(existing?.sortOrder ?? 0);
   const [saving, setSaving] = useState(false);
@@ -54,7 +62,7 @@ export function SectionEditor({ existing, onDone }: SectionEditorProps) {
         <div>
           <label className="block text-sm font-medium">Type</label>
           <select value={type} onChange={(e) => setType(e.target.value)} className="mt-1 w-full rounded border px-3 py-2 text-sm">
-            {TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+            {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
         </div>
         <div>
@@ -93,7 +101,7 @@ export function SectionEditor({ existing, onDone }: SectionEditorProps) {
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button onClick={handleSave} disabled={saving} className="rounded bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700 disabled:opacity-50">
-          {saving ? "Saving..." : "Save"}
+          {saving ? "Saving..." : "Save Draft"}
         </button>
         <button onClick={onDone} className="rounded bg-gray-200 px-4 py-2 text-sm hover:bg-gray-300">
           Cancel

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { requireDesignStudioAccess } from "@/lib/auth/guards";
+import { copyDraftThemeToPublished, copyDraftSectionToPublished } from "@/lib/design-studio/helpers";
 
 export async function POST() {
   try {
@@ -13,25 +14,19 @@ export async function POST() {
     }
 
     const draftSections = await db.cafePageSection.findMany({
-      where: { cafeId, status: "DRAFT" },
+      where: { cafeId, isPublished: false },
       orderBy: { sortOrder: "asc" },
     });
 
     await db.$transaction([
       db.cafeTheme.update({
         where: { cafeId },
-        data: {
-          publishedData: theme.draftData ?? {},
-        },
-      }),
-      db.cafePageSection.updateMany({
-        where: { cafeId, status: "PUBLISHED" },
-        data: { status: "DRAFT" },
+        data: copyDraftThemeToPublished(theme),
       }),
       ...draftSections.map((s) =>
         db.cafePageSection.update({
           where: { id: s.id },
-          data: { status: "PUBLISHED" },
+          data: copyDraftSectionToPublished(s),
         })
       ),
     ]);

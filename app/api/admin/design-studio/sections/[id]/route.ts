@@ -22,9 +22,16 @@ export async function PATCH(
     const body = await request.json();
     const parsed = updateSectionSchema.parse(body);
 
+    const data: Record<string, unknown> = {};
+    if (parsed.title !== undefined) data.draftTitle = parsed.title;
+    if (parsed.content !== undefined) data.draftContent = parsed.content;
+    if (parsed.sortOrder !== undefined) data.sortOrder = parsed.sortOrder;
+    if (parsed.isVisible !== undefined) data.isVisible = parsed.isVisible;
+    if (parsed.type !== undefined) data.type = parsed.type;
+
     const section = await db.cafePageSection.update({
       where: { id },
-      data: parsed,
+      data,
     });
 
     return NextResponse.json(section);
@@ -53,7 +60,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
     }
 
-    await db.cafePageSection.delete({ where: { id } });
+    await db.cafePageSection.update({
+      where: { id },
+      data: { isVisible: false },
+    });
 
     return NextResponse.json({ success: true });
   } catch (e: any) {
