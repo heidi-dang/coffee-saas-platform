@@ -1,10 +1,10 @@
-import { requireCafeUser } from "@/lib/auth/guards";
+import { requireCafeOwnerOrManager } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
 import { ok, handleAuthError } from "@/lib/api/response";
 
 export async function GET(request: Request) {
   try {
-    const user = await requireCafeUser();
+    const user = await requireCafeOwnerOrManager();
     const { searchParams } = new URL(request.url);
     const period = searchParams.get("period") || "7d";
 

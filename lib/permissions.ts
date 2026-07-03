@@ -36,6 +36,18 @@ export function canManageSettings(user: SessionUser): boolean {
   return ["PLATFORM_ADMIN", "CAFE_OWNER"].includes(user.role);
 }
 
+export function canManageCustomers(user: SessionUser): boolean {
+  return ["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role);
+}
+
+export function canViewAnalytics(user: SessionUser): boolean {
+  return ["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role);
+}
+
+export function canViewFeedback(user: SessionUser): boolean {
+  return ["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role);
+}
+
 export function canViewOrders(_user: SessionUser): boolean {
   return true; // All admin roles can view orders
 }

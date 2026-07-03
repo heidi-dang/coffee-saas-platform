@@ -106,17 +106,20 @@ export async function createOrder(
     const order = await db.$transaction(async (tx) => {
       const orderNumber = await getNextOrderNumber(tx, cafe.id);
 
-      // Decrement stock for items with tracked inventory
+      // Decrement stock atomically — conditional updateMany prevents overselling
       for (const itemInput of input.items) {
         const menuItem = menuItemMap.get(itemInput.menuItemId)!;
         if (menuItem.stockQuantity !== null) {
-          const newStock = menuItem.stockQuantity - itemInput.quantity;
-          await tx.menuItem.update({
-            where: { id: menuItem.id },
-            data: {
-              stockQuantity: Math.max(0, newStock),
-              isAvailable: newStock > 0,
-            },
+          const result = await tx.menuItem.updateMany({
+            where: { id: menuItem.id, stockQuantity: { gte: itemInput.quantity } },
+            data: { stockQuantity: { decrement: itemInput.quantity } },
+          });
+          if (result.count === 0) {
+            throw new Error(`${menuItem.name} has sold out`);
+          }
+          await tx.menuItem.updateMany({
+            where: { id: menuItem.id, stockQuantity: { lte: 0 } },
+            data: { isAvailable: false },
           });
         }
       }
@@ -222,6 +225,9 @@ export async function createOrder(
     });
   } catch (err) {
     console.error("Failed to create order:", err);
+    if (err instanceof Error && err.message.includes("has sold out")) {
+      return failure(err.message);
+    }
     return failure("Failed to create order due to an internal error.");
   }
 }
