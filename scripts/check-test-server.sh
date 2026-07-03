@@ -27,6 +27,17 @@ check() {
   fi
 }
 
+check_http_200() {
+  local url="$1"
+  local status
+  status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$url" 2>/dev/null || echo "000")
+  if [ "$status" = "200" ]; then
+    check "$url returns HTTP 200" "true"
+  else
+    check "$url returns HTTP $status, expected 200" "false"
+  fi
+}
+
 # Load env for URL
 if [ -f "$ENV_FILE" ]; then
   set -a
@@ -58,19 +69,14 @@ else
   check "Port $PORT is listening" "false"
 fi
 
-# ── 3-8. HTTP checks ──────────────────────────────────────────────
+# ── 3-6. HTTP checks ──────────────────────────────────────────────
 if [ -z "$BASE_URL" ]; then
   BASE_URL="http://localhost:$PORT"
 fi
 
 for endpoint in "/" "/cafe/demo-coffee" "/cafe/demo-coffee/order" "/admin/login"; do
   url="${BASE_URL}${endpoint}"
-  status=$(curl -s -o /dev/null -w "%{http_code}" --max-time 5 "$url" 2>/dev/null || echo "000")
-  if [ "$status" != "000" ]; then
-    check "$url returns HTTP $status" "true"
-  else
-    check "$url is reachable" "false"
-  fi
+  check_http_200 "$url"
 done
 
 # ── Summary ────────────────────────────────────────────────────────
