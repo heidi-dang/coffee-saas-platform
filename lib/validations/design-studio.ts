@@ -4,19 +4,18 @@ const hexColorRegex = /^#[0-9a-fA-F]{3,8}$/;
 
 const hexColor = z.string().regex(hexColorRegex, "Invalid hex colour");
 
-const urlOrPath = z
-  .string()
-  .refine(
-    (v) => {
-      try {
-        new URL(v);
-        return true;
-      } catch {
-        return v.startsWith("/");
-      }
-    },
-    { message: "Must be a valid URL (https://...) or internal path (e.g. /order)" }
-  );
+const urlOrPath = z.string().refine(
+  (v) => {
+    if (v.startsWith("/")) return true;
+    try {
+      const url = new URL(v);
+      return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+      return false;
+    }
+  },
+  { message: "Must be a valid http(s) URL or internal path such as /order" }
+);
 
 export const themeSchema = z.object({
   primaryColor: hexColor,

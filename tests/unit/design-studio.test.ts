@@ -3,6 +3,7 @@ import {
   themeSchema,
   createSectionSchema,
   updateSectionSchema,
+  sectionContentSchema,
 } from "@/lib/validations/design-studio";
 import { canManageDesignStudio } from "@/lib/permissions";
 import { canManageDesignStudioByRole } from "@/lib/auth/role-access";
@@ -529,6 +530,55 @@ describe("Design Studio - Publish isolation (helpers)", () => {
       ];
       const result = getPublicSections(sections);
       expect(result[0].id).toBe("1");
+    });
+  });
+
+  describe("Design Studio - URL/Path Validation", () => {
+    const validContent = { text: "Hello" };
+
+    it("buttonUrl accepts /order", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: "/order" });
+      expect(result.success).toBe(true);
+    });
+
+    it("buttonUrl accepts /cafe/demo-coffee/order", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: "/cafe/demo-coffee/order" });
+      expect(result.success).toBe(true);
+    });
+
+    it("buttonUrl accepts https://example.com", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: "https://example.com" });
+      expect(result.success).toBe(true);
+    });
+
+    it("buttonUrl rejects javascript:alert(1)", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: "javascript:alert(1)" });
+      expect(result.success).toBe(false);
+    });
+
+    it("buttonUrl rejects data:text/html;base64,...", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: "data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg==" });
+      expect(result.success).toBe(false);
+    });
+
+    it("buttonUrl rejects ftp://example.com", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: "ftp://example.com" });
+      expect(result.success).toBe(false);
+    });
+
+    it("imageUrl rejects javascript:alert(1)", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, imageUrl: "javascript:alert(1)" });
+      expect(result.success).toBe(false);
+    });
+
+    it("empty buttonUrl is allowed", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: "" });
+      expect(result.success).toBe(true);
+    });
+
+    it("null buttonUrl is allowed", () => {
+      const result = sectionContentSchema.safeParse({ ...validContent, buttonUrl: null });
+      expect(result.success).toBe(true);
     });
   });
 });
