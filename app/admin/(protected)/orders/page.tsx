@@ -6,6 +6,8 @@ import type { Order } from "@/lib/api/admin-orders-client";
 import { getAllowedTransitions } from "@/lib/orders/status-machine";
 import type { OrderStatus } from "@/lib/orders/status-machine";
 
+import { Printer } from "lucide-react";
+
 const statusLanes = ["NEW", "ACCEPTED", "PREPARING", "READY", "COMPLETED", "CANCELLED"];
 
 const statusColors: Record<string, string> = {
@@ -16,6 +18,91 @@ const statusColors: Record<string, string> = {
   COMPLETED: "border-gray-400",
   CANCELLED: "border-red-400",
 };
+
+function printOrder(order: Order) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) return;
+
+  const itemsHtml = order.items.map(item => `
+    <div style="margin-bottom: 8px;">
+      <div style="display: flex; justify-content: space-between;">
+        <span><strong>${item.quantity}x</strong> ${item.itemNameSnapshot}</span>
+      </div>
+      ${item.optionsSnapshot && (item.optionsSnapshot as any[]).length > 0 ? `
+        <div style="font-size: 11px; margin-left: 12px; color: #444;">
+          - ${(item.optionsSnapshot as any[]).map(o => o.valueName).join(", ")}
+        </div>
+      ` : ""}
+      ${item.notes ? `
+        <div style="font-size: 11px; margin-left: 12px; font-style: italic; color: #444;">
+          * Note: ${item.notes}
+        </div>
+      ` : ""}
+    </div>
+  `).join("");
+
+  printWindow.document.write(`
+    <html>
+      <head>
+        <title>Order #${order.orderNumber}</title>
+        <style>
+          @page { size: 80mm auto; margin: 0; }
+          body {
+            font-family: 'Courier New', Courier, monospace;
+            width: 72mm;
+            margin: 0;
+            padding: 8px;
+            box-sizing: border-box;
+            color: #000;
+            background: #fff;
+          }
+          .header { text-align: center; margin-bottom: 8px; }
+          .title { font-size: 18px; font-weight: bold; margin: 4px 0; }
+          .divider { border-top: 1px dashed #000; margin: 8px 0; }
+          .meta { font-size: 12px; margin-bottom: 2px; }
+          .items { margin: 8px 0; }
+          .total { text-align: right; font-weight: bold; margin-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">ORDER #${order.orderNumber}</div>
+          <div class="meta">${new Date(order.createdAt).toLocaleString()}</div>
+          <div class="meta">Type: ${order.type.replace("_", " ")}</div>
+          ${order.table ? `<div class="title">TABLE ${order.table.tableNumber}</div>` : ""}
+          ${order.customerName ? `<div class="meta">Name: ${order.customerName}</div>` : ""}
+          ${order.customerPhone ? `<div class="meta">Phone: ${order.customerPhone}</div>` : ""}
+        </div>
+        <div class="divider"></div>
+        <div class="items">
+          ${itemsHtml}
+        </div>
+        ${order.customerNote ? `
+          <div class="divider"></div>
+          <div style="font-size: 11px; font-style: italic;">
+            <strong>Customer Note:</strong><br/>
+            ${order.customerNote}
+          </div>
+        ` : ""}
+        <div class="divider"></div>
+        <div class="total">
+          TOTAL: $${(order.totalCents / 100).toFixed(2)}
+        </div>
+        <div class="divider"></div>
+        <div style="text-align: center; font-size: 10px; margin-top: 12px;">
+          CoffeeQR SaaS Platform
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 500);
+          };
+        </script>
+      </body>
+    </html>
+  `);
+  printWindow.document.close();
+}
 
 function OrderCard({
   order,
@@ -45,9 +132,18 @@ function OrderCard({
           <p className="font-bold">#{order.orderNumber}</p>
           <p className="text-xs text-muted-foreground">{timeStr}</p>
         </div>
-        <span className="text-xs capitalize px-2 py-0.5 rounded bg-muted">
-          {order.type.toLowerCase().replace("_", " ")}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => printOrder(order)}
+            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            title="Print kitchen ticket"
+          >
+            <Printer className="h-3.5 w-3.5" />
+          </button>
+          <span className="text-xs capitalize px-2 py-0.5 rounded bg-muted">
+            {order.type.toLowerCase().replace("_", " ")}
+          </span>
+        </div>
       </div>
 
       {order.table && (
