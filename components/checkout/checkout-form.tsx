@@ -32,6 +32,9 @@ export function CheckoutForm({
   const [orderType, setOrderType] = useState<"DINE_IN" | "TAKEAWAY" | "PICKUP">(
     tableToken ? "DINE_IN" : "TAKEAWAY"
   );
+  const [paymentMethod, setPaymentMethod] = useState<"PAY_AT_COUNTER" | "ONLINE">(
+    settings.acceptPayAtCounter ? "PAY_AT_COUNTER" : "ONLINE"
+  );
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNote, setCustomerNote] = useState("");
@@ -49,12 +52,55 @@ export function CheckoutForm({
     );
   }
 
+  const showPayAtCounter = settings.acceptPayAtCounter;
+  const showOnlinePayment = settings.acceptOnlinePayment;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
 
     try {
+      if (paymentMethod === "ONLINE") {
+        const res = await fetch(`/api/cafes/${cafeSlug}/checkout/stripe`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cafeSlug,
+            tableToken: tableToken || undefined,
+            type: orderType,
+            paymentMethod: "ONLINE",
+            customerName: customerName || undefined,
+            customerPhone: customerPhone || undefined,
+            customerNote: customerNote || undefined,
+            items: items.map((item) => ({
+              menuItemId: item.menuItemId,
+              quantity: item.quantity,
+              selectedOptions: item.selectedOptions.map((o) => ({
+                optionId: o.optionId,
+                valueId: o.valueId,
+              })),
+              notes: item.notes,
+            })),
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          setError(data.error || "Failed to start payment");
+          return;
+        }
+
+        if (data.checkoutUrl) {
+          window.location.href = data.checkoutUrl;
+          return;
+        }
+
+        setError("No checkout URL received");
+        return;
+      }
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,6 +108,7 @@ export function CheckoutForm({
           cafeSlug,
           tableToken: tableToken || undefined,
           type: orderType,
+          paymentMethod: "PAY_AT_COUNTER",
           customerName: customerName || undefined,
           customerPhone: customerPhone || undefined,
           customerNote: customerNote || undefined,
@@ -176,6 +223,34 @@ export function CheckoutForm({
         </div>
       )}
 
+      {(showPayAtCounter || showOnlinePayment) && (
+        <div>
+          <Label className="text-base font-semibold">Payment Method</Label>
+          <RadioGroup
+            value={paymentMethod}
+            onValueChange={(v) => setPaymentMethod(v as typeof paymentMethod)}
+            className="mt-2 space-y-2"
+          >
+            {showPayAtCounter && (
+              <div className="flex items-center gap-3 border rounded-lg p-3">
+                <RadioGroupItem value="PAY_AT_COUNTER" id="pay-counter" />
+                <Label htmlFor="pay-counter" className="font-normal">
+                  Pay at counter
+                </Label>
+              </div>
+            )}
+            {showOnlinePayment && (
+              <div className="flex items-center gap-3 border rounded-lg p-3">
+                <RadioGroupItem value="ONLINE" id="pay-online" />
+                <Label htmlFor="pay-online" className="font-normal">
+                  Pay online (card)
+                </Label>
+              </div>
+            )}
+          </RadioGroup>
+        </div>
+      )}
+
       <CartSummary />
 
       {error && (
@@ -188,7 +263,11 @@ export function CheckoutForm({
         size="lg"
         disabled={submitting}
       >
-        {submitting ? "Placing Order..." : `Place Order — $${(totalCents / 100).toFixed(2)}`}
+        {submitting
+          ? "Processing..."
+          : paymentMethod === "ONLINE"
+            ? `Pay $${(totalCents / 100).toFixed(2)}`
+            : `Place Order — $${(totalCents / 100).toFixed(2)}`}
       </Button>
     </form>
   );

@@ -21,3 +21,10 @@ export const createOrderSchema = z.object({
   customerNote: z.string().max(1000).optional(),
   items: z.array(orderItemSchema).min(1).max(50),
 });
+
+export const paymentMethodSchema = z.enum(["PAY_AT_COUNTER", "ONLINE"]);
+export type PaymentMethod = z.infer<typeof paymentMethodSchema>;
+
+export const createOrderWithPaymentSchema = createOrderSchema.extend({
+  paymentMethod: paymentMethodSchema.default("PAY_AT_COUNTER"),
+});

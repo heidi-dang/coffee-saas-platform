@@ -101,7 +101,7 @@ export default function AdminSettingsPage() {
               ["acceptTakeaway", "Takeaway"],
               ["acceptPickup", "Pickup"],
               ["acceptPayAtCounter", "Pay at counter"],
-              ["acceptOnlinePayment", "Online payment (coming soon)"],
+              ["acceptOnlinePayment", "Online payment"],
             ] as const
           ).map(([key, label]) => (
             <label
@@ -118,11 +118,15 @@ export default function AdminSettingsPage() {
                     [key]: e.target.checked,
                   }))
                 }
-                disabled={key === "acceptOnlinePayment"}
                 className="h-4 w-4"
               />
             </label>
           ))}
+          {settings.acceptOnlinePayment && (
+            <p className="text-sm text-amber-600">
+              Online payment requires Stripe to be configured on the server.
+            </p>
+          )}
         </div>
 
         <Button onClick={handleSave} disabled={saving}>

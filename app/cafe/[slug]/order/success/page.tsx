@@ -26,6 +26,11 @@ export default async function SuccessPage({
 
   if (!order) notFound();
 
+  const isPendingPayment = order.paymentStatus === "PENDING";
+  const isFailedPayment = order.paymentStatus === "FAILED";
+  const isPaid = order.paymentStatus === "PAID";
+  const isPayAtCounter = order.paymentStatus === "UNPAID";
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-16 text-center">
       <div className="mb-8">
@@ -48,6 +53,16 @@ export default async function SuccessPage({
         <p className="text-muted-foreground">
           Your order has been received.
         </p>
+        {isPendingPayment && (
+          <p className="mt-2 text-sm text-amber-600">
+            Payment received. Your order is being prepared.
+          </p>
+        )}
+        {isFailedPayment && (
+          <p className="mt-2 text-sm text-red-600">
+            Payment was not completed. Please contact the café.
+          </p>
+        )}
       </div>
 
       <div className="border rounded-lg p-6 space-y-3 text-left">
@@ -61,10 +76,26 @@ export default async function SuccessPage({
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">Payment</span>
-          <span className="font-semibold capitalize">
-            {order.paymentStatus === "UNPAID"
+          <span
+            className={`font-semibold capitalize ${
+              isPaid
+                ? "text-green-600"
+                : isFailedPayment
+                  ? "text-red-600"
+                  : isPendingPayment
+                    ? "text-amber-600"
+                    : ""
+            }`}
+          >
+            {isPayAtCounter
               ? "Pay at counter"
-              : order.paymentStatus.toLowerCase()}
+              : isPendingPayment
+                ? "Pending"
+                : isFailedPayment
+                  ? "Failed"
+                  : isPaid
+                    ? "Paid"
+                    : order.paymentStatus.toLowerCase()}
           </span>
         </div>
         <div className="flex justify-between">

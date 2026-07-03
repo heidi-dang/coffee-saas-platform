@@ -173,6 +173,8 @@ model Order {
   subtotalCents   Int
   totalCents      Int
   stripeSessionId String?
+  stripePaymentIntentId String?
+  paidAt          DateTime?
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   items           OrderItem[]

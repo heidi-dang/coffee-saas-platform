@@ -94,10 +94,24 @@ function OrderCard({
           className={`text-xs px-1.5 py-0.5 rounded ${
             order.paymentStatus === "PAID"
               ? "bg-green-100 text-green-700"
-              : "bg-yellow-100 text-yellow-700"
+              : order.paymentStatus === "PENDING"
+                ? "bg-blue-100 text-blue-700"
+                : order.paymentStatus === "FAILED"
+                  ? "bg-red-100 text-red-700"
+                  : order.paymentStatus === "REFUNDED"
+                    ? "bg-purple-100 text-purple-700"
+                    : "bg-yellow-100 text-yellow-700"
           }`}
         >
-          {order.paymentStatus === "UNPAID" ? "Pay at counter" : order.paymentStatus.toLowerCase()}
+          {order.paymentStatus === "UNPAID"
+            ? "Pay at counter"
+            : order.paymentStatus === "PENDING"
+              ? "Payment pending"
+              : order.paymentStatus === "PAID"
+                ? "Paid"
+                : order.paymentStatus === "FAILED"
+                  ? "Payment failed"
+                  : order.paymentStatus.toLowerCase()}
         </span>
       </div>
 
