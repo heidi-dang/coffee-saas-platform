@@ -66,6 +66,7 @@ export default async function OrderPage({ params, searchParams }: PageProps) {
       priceCents: item.priceCents,
       isAvailable: item.isAvailable,
       stockQuantity: item.stockQuantity,
+      dependencyRulesJson: item.dependencyRulesJson,
       options: item.options.map((opt) => ({
         id: opt.id,
         name: opt.name,

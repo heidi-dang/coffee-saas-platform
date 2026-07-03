@@ -118,6 +118,7 @@ model MenuItem {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   options     MenuItemOption[]
+  dependencyRulesJson Json?
 
   @@index([cafeId, categoryId])
   @@index([cafeId, isAvailable])

@@ -33,6 +33,7 @@ interface MenuItem {
   priceCents: number;
   isAvailable: boolean;
   stockQuantity: number | null;
+  dependencyRulesJson?: any;
   options: MenuOption[];
 }
 

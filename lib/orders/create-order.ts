@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { validateAndPriceItem } from "./price-order";
-import { validateItemOptions } from "./validate-order-options";
+import { validateItemOptions, validateDependencyRules } from "./validate-order-options";
 import { resolveTable } from "./resolve-table";
 import { getNextOrderNumber } from "./order-number";
 import { findDuplicateOptionSelections } from "./validate-duplicates";
@@ -74,6 +74,9 @@ export async function createOrder(
 
     const optError = validateItemOptions(menuItem.options, itemInput.selectedOptions);
     if (optError) return failure(optError);
+
+    const depError = validateDependencyRules(itemInput.selectedOptions, menuItem.dependencyRulesJson);
+    if (depError) return failure(depError);
 
     const priced = validateAndPriceItem(menuItem, itemInput);
     if (priced.error) return failure(priced.error);
