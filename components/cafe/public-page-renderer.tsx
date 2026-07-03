@@ -24,7 +24,7 @@ export function PublicPageRenderer({ theme, sections }: PublicPageRendererProps)
   };
 
   const visibleSections = sections.filter(
-    (s) => s.publishedIsVisible && s.publishedContent != null && s.deletedAt === null
+    (s) => s.publishedIsVisible && s.publishedContent != null && s.publishedDeletedAt === null
   );
 
   return (

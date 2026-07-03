@@ -226,23 +226,25 @@ model CafeTheme {
 }
 
 model CafePageSection {
-  id                 String            @id @default(cuid())
-  cafeId             String
-  cafe               Cafe              @relation(fields: [cafeId], references: [id])
-  type               PageSectionType
-  draftTitle         String?
-  draftContent       Json
-  draftIsVisible     Boolean           @default(true)
-  publishedTitle     String?
-  publishedContent   Json?
-  publishedIsVisible Boolean           @default(false)
-  publishedAt        DateTime?
-  sortOrder          Int               @default(0)
-  deletedAt          DateTime?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  id                   String            @id @default(cuid())
+  cafeId               String
+  cafe                 Cafe              @relation(fields: [cafeId], references: [id])
+  type                 PageSectionType
+  draftTitle           String?
+  draftContent         Json
+  draftIsVisible       Boolean           @default(true)
+  draftDeletedAt       DateTime?
+  publishedTitle       String?
+  publishedContent     Json?
+  publishedIsVisible   Boolean           @default(false)
+  publishedAt          DateTime?
+  publishedDeletedAt   DateTime?
+  sortOrder            Int               @default(0)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
 
+  @@index([cafeId, draftDeletedAt])
   @@index([cafeId, publishedAt])
+  @@index([cafeId, publishedDeletedAt])
   @@index([cafeId, sortOrder])
-  @@index([cafeId, deletedAt])
 }

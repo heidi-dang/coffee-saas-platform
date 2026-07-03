@@ -9,7 +9,7 @@ export async function GET() {
     const cafeId = user.cafeId;
 
     const sections = await db.cafePageSection.findMany({
-      where: { cafeId, deletedAt: null },
+      where: { cafeId, draftDeletedAt: null },
       orderBy: { sortOrder: "asc" },
     });
 

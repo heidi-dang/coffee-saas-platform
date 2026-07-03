@@ -7,22 +7,24 @@ export function copyDraftThemeToPublished(theme: CafeTheme) {
 }
 
 export function copyDraftSectionToPublished(section: CafePageSection) {
+  const isDraftDeleted = section.draftDeletedAt !== null;
   return {
-    publishedTitle: section.draftTitle,
-    publishedContent: section.draftContent,
-    publishedIsVisible: section.draftIsVisible,
+    publishedTitle: isDraftDeleted ? section.publishedTitle : section.draftTitle,
+    publishedContent: isDraftDeleted ? section.publishedContent : section.draftContent,
+    publishedIsVisible: isDraftDeleted ? false : section.draftIsVisible,
     publishedAt: new Date(),
+    publishedDeletedAt: isDraftDeleted ? new Date() : null,
   } as any;
 }
 
 export function getPublicSections(sections: CafePageSection[]): CafePageSection[] {
   return sections.filter(
-    (s) => s.publishedContent != null && s.publishedIsVisible && s.deletedAt === null
+    (s) => s.publishedContent != null && s.publishedIsVisible && s.publishedDeletedAt === null
   );
 }
 
 export function getDraftSections(sections: CafePageSection[]): CafePageSection[] {
-  return sections.filter((s) => s.deletedAt === null);
+  return sections.filter((s) => s.draftDeletedAt === null);
 }
 
 export function getPublicTheme(theme: CafeTheme | null) {
@@ -42,6 +44,6 @@ export function getPublicTheme(theme: CafeTheme | null) {
 export function hasPublishedDesign(theme: CafeTheme | null, sections: CafePageSection[]): boolean {
   return (
     theme?.publishedData !== null &&
-    sections.some((s) => s.publishedContent != null && s.publishedIsVisible && s.deletedAt === null)
+    sections.some((s) => s.publishedContent != null && s.publishedIsVisible && s.publishedDeletedAt === null)
   );
 }

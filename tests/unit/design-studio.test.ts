@@ -159,6 +159,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
         draftTitle: "Draft Title",
         draftContent: { text: "Draft content" },
         draftIsVisible: true,
+        draftDeletedAt: null,
         publishedAt: null,
       };
       const result = copyDraftSectionToPublished(section);
@@ -166,6 +167,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
       expect(result.publishedContent).toEqual({ text: "Draft content" });
       expect(result.publishedIsVisible).toBe(true);
       expect(result.publishedAt.getTime()).toBeGreaterThanOrEqual(now);
+      expect(result.publishedDeletedAt).toBeNull();
     });
 
     it("copies draftIsVisible to publishedIsVisible", () => {
@@ -175,10 +177,12 @@ describe("Design Studio - Publish isolation (helpers)", () => {
         draftTitle: "Title",
         draftContent: {},
         draftIsVisible: false,
+        draftDeletedAt: null,
         publishedAt: null,
       };
       const result = copyDraftSectionToPublished(section);
       expect(result.publishedIsVisible).toBe(false);
+      expect(result.publishedDeletedAt).toBeNull();
     });
 
     it("does not mutate original draft data", () => {
@@ -188,6 +192,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
         draftTitle: "Original",
         draftContent: { text: "Original" },
         draftIsVisible: true,
+        draftDeletedAt: null,
       };
       const before = { draftTitle: section.draftTitle, draftContent: { ...section.draftContent } };
       copyDraftSectionToPublished(section);
@@ -202,29 +207,66 @@ describe("Design Studio - Publish isolation (helpers)", () => {
         draftTitle: "Updated Draft Title",
         draftContent: { text: "Updated Draft" },
         draftIsVisible: false,
+        draftDeletedAt: null,
         publishedTitle: "Original Published Title",
         publishedContent: { text: "Original Published" },
         publishedIsVisible: true,
         publishedAt: new Date(),
       };
-      const publishedBefore = {
-        publishedTitle: section.publishedTitle,
-        publishedContent: { ...section.publishedContent },
-        publishedIsVisible: section.publishedIsVisible,
-      };
       const result = copyDraftSectionToPublished(section);
       expect(result.publishedTitle).toBe("Updated Draft Title");
       expect(result.publishedContent).toEqual({ text: "Updated Draft" });
+      expect(result.publishedDeletedAt).toBeNull();
+    });
+
+    it("publish sets publishedDeletedAt when draftDeletedAt is set", () => {
+      const section: any = {
+        id: "sec_1",
+        cafeId: "cafe_1",
+        draftTitle: "Hidden",
+        draftContent: { text: "Hidden" },
+        draftIsVisible: false,
+        draftDeletedAt: new Date(),
+        publishedTitle: "Old Title",
+        publishedContent: { text: "Old Content" },
+        publishedIsVisible: true,
+        publishedAt: new Date("2026-01-01"),
+        publishedDeletedAt: null,
+      };
+      const result = copyDraftSectionToPublished(section);
+      expect(result.publishedDeletedAt).toBeInstanceOf(Date);
+      expect(result.publishedIsVisible).toBe(false);
+    });
+
+    it("publish preserves published fields when draftDeletedAt is set", () => {
+      const section: any = {
+        id: "sec_1",
+        cafeId: "cafe_1",
+        draftTitle: "New Draft Title",
+        draftContent: { text: "New Draft Content" },
+        draftIsVisible: true,
+        draftDeletedAt: new Date(),
+        publishedTitle: "Published Title",
+        publishedContent: { text: "Published Content" },
+        publishedIsVisible: true,
+        publishedAt: new Date("2026-01-01"),
+        publishedDeletedAt: null,
+      };
+      const result = copyDraftSectionToPublished(section);
+      expect(result.publishedTitle).toBe("Published Title");
+      expect(result.publishedContent).toEqual({ text: "Published Content" });
+      expect(result.publishedIsVisible).toBe(false);
+      expect(result.publishedDeletedAt).toBeInstanceOf(Date);
     });
   });
 
   describe("getPublicSections", () => {
     it("returns only published visible non-deleted sections", () => {
       const sections: any[] = [
-        { id: "1", publishedContent: { text: "A" }, publishedIsVisible: true, deletedAt: null },
-        { id: "2", publishedContent: null, publishedIsVisible: false, deletedAt: null },
-        { id: "3", publishedContent: { text: "C" }, publishedIsVisible: true, deletedAt: new Date() },
-        { id: "4", publishedContent: { text: "D" }, publishedIsVisible: false, deletedAt: null },
+        { id: "1", publishedContent: { text: "A" }, publishedIsVisible: true, publishedDeletedAt: null },
+        { id: "2", publishedContent: null, publishedIsVisible: false, publishedDeletedAt: null },
+        { id: "3", publishedContent: { text: "C" }, publishedIsVisible: true, publishedDeletedAt: new Date() },
+        { id: "4", publishedContent: { text: "D" }, publishedIsVisible: false, publishedDeletedAt: null },
       ];
       const result = getPublicSections(sections);
       expect(result).toHaveLength(1);
@@ -233,7 +275,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
 
     it("returns empty when no published sections", () => {
       const sections: any[] = [
-        { id: "1", publishedContent: null, publishedIsVisible: false, deletedAt: null },
+        { id: "1", publishedContent: null, publishedIsVisible: false, publishedDeletedAt: null },
       ];
       expect(getPublicSections(sections)).toHaveLength(0);
     });
@@ -242,17 +284,17 @@ describe("Design Studio - Publish isolation (helpers)", () => {
   describe("getDraftSections", () => {
     it("returns all non-deleted sections including published ones", () => {
       const sections: any[] = [
-        { id: "1", deletedAt: null, publishedAt: new Date(), draftTitle: "Published" },
-        { id: "2", deletedAt: null, publishedAt: null, draftTitle: "Draft only" },
+        { id: "1", draftDeletedAt: null, publishedAt: new Date(), draftTitle: "Published" },
+        { id: "2", draftDeletedAt: null, publishedAt: null, draftTitle: "Draft only" },
       ];
       const result = getDraftSections(sections);
       expect(result).toHaveLength(2);
     });
 
-    it("excludes deleted sections", () => {
+    it("excludes draft-deleted sections", () => {
       const sections: any[] = [
-        { id: "1", deletedAt: null, draftTitle: "Active" },
-        { id: "2", deletedAt: new Date(), draftTitle: "Deleted" },
+        { id: "1", draftDeletedAt: null, draftTitle: "Active" },
+        { id: "2", draftDeletedAt: new Date(), draftTitle: "Deleted" },
       ];
       const result = getDraftSections(sections);
       expect(result).toHaveLength(1);
@@ -261,7 +303,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
 
     it("after publish, section still returned by editor draft list", () => {
       const sections: any[] = [
-        { id: "1", deletedAt: null, publishedAt: new Date(), draftTitle: "Published but editable" },
+        { id: "1", draftDeletedAt: null, publishedAt: new Date(), draftTitle: "Published but editable" },
       ];
       const result = getDraftSections(sections);
       expect(result).toHaveLength(1);
@@ -273,7 +315,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
     it("returns true when published sections exist", () => {
       const theme: any = { publishedData: { primaryColor: "#000" } };
       const sections: any[] = [
-        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: true, deletedAt: null },
+        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: true, publishedDeletedAt: null },
       ];
       expect(hasPublishedDesign(theme, sections)).toBe(true);
     });
@@ -287,7 +329,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
     it("returns false when publishedData is null", () => {
       const theme: any = { publishedData: null };
       const sections: any[] = [
-        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: true, deletedAt: null },
+        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: true, publishedDeletedAt: null },
       ];
       expect(hasPublishedDesign(theme, sections)).toBe(false);
     });
@@ -295,7 +337,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
     it("returns false when published section is hidden", () => {
       const theme: any = { publishedData: { primaryColor: "#000" } };
       const sections: any[] = [
-        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: false, deletedAt: null },
+        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: false, publishedDeletedAt: null },
       ];
       expect(hasPublishedDesign(theme, sections)).toBe(false);
     });
@@ -339,7 +381,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
           draftIsVisible: false,
           publishedContent: { text: "Still visible" },
           publishedIsVisible: true,
-          deletedAt: null,
+          publishedDeletedAt: null,
         },
       ];
       const result = getPublicSections(sections);
@@ -365,19 +407,100 @@ describe("Design Studio - Publish isolation (helpers)", () => {
     it("hiding section does not delete row", () => {
       const section: any = {
         id: "sec_1",
-        deletedAt: new Date(),
+        draftDeletedAt: new Date(),
         draftTitle: "Hidden Section",
       };
-      expect(section.deletedAt).toBeInstanceOf(Date);
+      expect(section.draftDeletedAt).toBeInstanceOf(Date);
       expect(section.id).toBe("sec_1");
     });
 
-    it("deleted section excluded from draft list", () => {
+    it("draft-deleted section excluded from editor draft list", () => {
       const sections: any[] = [
-        { id: "1", deletedAt: null, draftTitle: "Active" },
-        { id: "2", deletedAt: new Date(), draftTitle: "Deleted" },
+        { id: "1", draftDeletedAt: null, draftTitle: "Active" },
+        { id: "2", draftDeletedAt: new Date(), draftTitle: "Deleted" },
       ];
       expect(getDraftSections(sections)).toHaveLength(1);
+    });
+
+    it("draft delete does not affect public section before publish", () => {
+      const sections: any[] = [
+        { id: "1", draftDeletedAt: new Date(), publishedDeletedAt: null, publishedContent: { text: "A" }, publishedIsVisible: true },
+      ];
+      const result = getPublicSections(sections);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("1");
+    });
+
+    it("public query ignores draftDeletedAt", () => {
+      const sections: any[] = [
+        { id: "1", draftDeletedAt: new Date(), publishedDeletedAt: null, publishedContent: { text: "A" }, publishedIsVisible: true },
+        { id: "2", draftDeletedAt: null, publishedDeletedAt: null, publishedContent: { text: "B" }, publishedIsVisible: true },
+      ];
+      const result = getPublicSections(sections);
+      expect(result).toHaveLength(2);
+    });
+
+    it("publish applies draftDeletedAt to publishedDeletedAt", () => {
+      const section: any = {
+        id: "sec_1",
+        cafeId: "cafe_1",
+        draftTitle: "T",
+        draftContent: {},
+        draftIsVisible: true,
+        draftDeletedAt: new Date(),
+        publishedTitle: "Old",
+        publishedContent: { text: "Old" },
+        publishedIsVisible: true,
+        publishedAt: new Date("2026-01-01"),
+        publishedDeletedAt: null,
+      };
+      const result = copyDraftSectionToPublished(section);
+      expect(result.publishedDeletedAt).toBeInstanceOf(Date);
+      expect(result.publishedIsVisible).toBe(false);
+    });
+
+    it("after publish, deleted section is removed publicly", () => {
+      const sections: any[] = [
+        { id: "1", draftDeletedAt: new Date(), publishedDeletedAt: new Date(), publishedContent: { text: "A" }, publishedIsVisible: true },
+      ];
+      const result = getPublicSections(sections);
+      expect(result).toHaveLength(0);
+    });
+
+    it("editor no longer shows draft-deleted section", () => {
+      const sections: any[] = [
+        { id: "1", draftDeletedAt: null, draftTitle: "Active" },
+        { id: "2", draftDeletedAt: new Date(), draftTitle: "Deleted" },
+      ];
+      const result = getDraftSections(sections);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("1");
+    });
+
+    it("draftIsVisible=false still does not affect public until publish", () => {
+      const section: any = {
+        id: "sec_1",
+        cafeId: "cafe_1",
+        draftTitle: "T",
+        draftContent: {},
+        draftIsVisible: false,
+        draftDeletedAt: null,
+        publishedTitle: null,
+        publishedContent: null,
+        publishedIsVisible: false,
+        publishedAt: null,
+        publishedDeletedAt: null,
+      };
+      const result = copyDraftSectionToPublished(section);
+      expect(result.publishedIsVisible).toBe(false);
+    });
+
+    it("section with publishedContent+publishedIsVisible+publishedAt remains public even when draftDeletedAt is set", () => {
+      const sections: any[] = [
+        { id: "1", draftDeletedAt: new Date(), publishedDeletedAt: null, publishedContent: { text: "Still public" }, publishedIsVisible: true },
+      ];
+      const result = getPublicSections(sections);
+      expect(result).toHaveLength(1);
     });
   });
 
@@ -401,7 +524,7 @@ describe("Design Studio - Publish isolation (helpers)", () => {
           draftContent: { text: "draft text" },
           publishedContent: { text: "published text" },
           publishedIsVisible: true,
-          deletedAt: null,
+          publishedDeletedAt: null,
         },
       ];
       const result = getPublicSections(sections);

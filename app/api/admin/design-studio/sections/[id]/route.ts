@@ -13,7 +13,7 @@ export async function PATCH(
     const { id } = await params;
 
     const existing = await db.cafePageSection.findFirst({
-      where: { id, cafeId, deletedAt: null },
+      where: { id, cafeId, draftDeletedAt: null },
     });
     if (!existing) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
@@ -54,7 +54,7 @@ export async function DELETE(
     const { id } = await params;
 
     const existing = await db.cafePageSection.findFirst({
-      where: { id, cafeId, deletedAt: null },
+      where: { id, cafeId, draftDeletedAt: null },
     });
     if (!existing) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
@@ -62,7 +62,7 @@ export async function DELETE(
 
     await db.cafePageSection.update({
       where: { id },
-      data: { deletedAt: new Date() },
+      data: { draftDeletedAt: new Date() },
     });
 
     return NextResponse.json({ success: true });

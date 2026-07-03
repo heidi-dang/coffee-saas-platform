@@ -11,7 +11,7 @@ type CafeWithMenu = Prisma.CafeGetPayload<{
     };
     theme: true;
     sections: {
-      where: { publishedAt: { not: null }; deletedAt: null };
+      where: { publishedAt: { not: null }; publishedDeletedAt: null };
       orderBy: { sortOrder: "asc" };
     };
   };
@@ -51,7 +51,7 @@ export default async function CafePage({ params }: PageProps) {
       },
       theme: true,
       sections: {
-        where: { publishedAt: { not: null }, deletedAt: null },
+        where: { publishedAt: { not: null }, publishedDeletedAt: null },
         orderBy: { sortOrder: "asc" },
       },
     },
