@@ -1,6 +1,6 @@
 import { requireCafeUser } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, handleAuthError } from "@/lib/api/response";
+import { ok, handleAuthError } from "@/lib/api/response";
 import { getActiveStatuses } from "@/lib/orders/status-machine";
 
 export async function GET(request: Request) {

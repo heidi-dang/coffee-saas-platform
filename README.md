@@ -1,460 +1,215 @@
 # Coffee Shop QR Ordering SaaS Platform
 
-A multi-tenant SaaS platform that lets cafes and coffee shops run their own QR-based ordering system. Each cafe gets a public menu page, QR-coded tables, a live order dashboard, and optional online payment — all within a single platform.
+A multi-tenant SaaS platform that lets cafes run QR-based ordering. Customers scan a table QR code, browse the menu, customise items, and order — all from their phone. Staff see orders arrive in real-time on the admin dashboard.
 
-Built for cafe owners, staff, and their customers.
+Built with Next.js App Router, TypeScript, PostgreSQL, Prisma, and Tailwind CSS.
 
 ## Tech Stack
 
 | Layer | Technology |
-|-------|-----------|
-| Framework | Next.js App Router |
+|---|---|
+| Framework | Next.js 16 (App Router) |
 | Language | TypeScript |
-| Styling | Tailwind CSS + shadcn/ui |
+| Styling | Tailwind CSS 4 + shadcn/ui |
 | Forms | React Hook Form + Zod |
-| Database | PostgreSQL + Prisma ORM |
-| Cache (optional) | Redis |
-| Payments | Stripe (first), Square (later) |
+| Database | PostgreSQL 18 + Prisma ORM |
+| Auth | JWT (bcryptjs) |
 | Icons | lucide-react |
 | Utilities | date-fns, clsx, tailwind-merge |
+| Testing | Vitest (unit), k6 (load) |
+| Process | PM2 (production) |
+| CI | GitHub Actions |
 
-## Features by Phase
+## Prerequisites
 
-### Phase 1 — MVP
-- Public cafe website per tenant
-- QR-based ordering page with table tokens
-- Menu with categories, items, and customisation (size, milk, extras, sugar, notes)
-- Client-side cart with server-side price recalculation
-- Order submission (dine-in, takeaway, pickup)
-- Pay at counter option
-- Staff/admin login with role-based access
-- Live order dashboard with status lanes (New → Accepted → Preparing → Ready → Completed → Cancelled)
-- Menu management (CRUD categories, items, option groups)
-- Table and QR code management with PNG download
-- Basic order status updates
+- Node.js 22+
+- pnpm 10+
+- PostgreSQL 18 (local or Docker)
+- A VPS (Vultr, DigitalOcean, etc.) for deployment
 
-### Phase 1.5 — Admin Website Builder / Design Studio
+## Quick Start
 
-The platform will include a controlled WYSIWYG-style Website Builder inside the admin area so café owners can redesign their public café website without needing a developer.
+```bash
+# 1. Install dependencies
+pnpm install
 
-This feature should be added after the core ordering flow is stable.
+# 2. Set up environment
+cp .env.example .env
+# Edit .env with your database URL and JWT secret
 
-#### Goal
+# 3. Generate Prisma client
+pnpm prisma generate
 
-Allow café owners to edit their public café landing page from the admin dashboard. They should be able to change:
+# 4. Run migrations
+pnpm prisma migrate dev
 
-- Logo
-- Hero image
-- Hero title
-- Hero subtitle
-- Button text
-- Button link
-- Brand colour
-- Accent colour
-- Background colour
-- Font preset
-- About section
-- Gallery images
-- Announcement banner
-- Opening hours text
-- Footer text
-- Social links
-- Menu item photos
+# 5. Seed demo data
+pnpm db:seed
 
-#### Admin Routes
-
-Planned routes:
-
-```
-/admin/website-builder
-/admin/developer/design-studio
+# 6. Start dev server
+pnpm dev
 ```
 
-Both routes can load the same Design Studio page.
+Open [http://localhost:3000](http://localhost:3000). Login at `/admin/login` with demo credentials:
 
-#### Editing Scope
+| Email | Password | Role |
+|---|---|---|
+| `owner@democoffee.com` | `password123` | Cafe Owner |
+| `staff@democoffee.com` | `password123` | Cafe Staff |
+| `admin@coffeeqr.app` | `password123` | Platform Admin |
 
-The Website Builder should only edit the public café landing page first:
+## Environment Variables
 
-```
-/cafe/[slug]
-```
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `JWT_SECRET` | Yes | At least 32 characters for session signing |
+| `APP_ENV` | Yes | `development`, `test`, or `production` |
+| `NEXT_PUBLIC_APP_URL` | Yes | Public base URL of the app |
 
-It must not allow customers to redesign these pages in the MVP:
+See `.env.example` for the full list including Stripe keys (needed for Week 5+).
 
-```
-/admin/*
-/cafe/[slug]/order/*
-/cafe/[slug]/order/checkout
-/cafe/[slug]/order/success
-payment pages
-API routes
-```
+## Database
 
-Ordering, checkout, payment, and admin pages must remain stable.
+### Schema
 
-#### Recommended Build Approach
+10 models with tenant isolation via `cafeId` on every multi-tenant table:
 
-Use a controlled block editor first, not a full unrestricted code editor.
+- **User** — Platform admins, cafe owners, staff
+- **Cafe** — Tenant (one per coffee shop)
+- **CafeSettings** — Ordering toggles (dine-in, takeaway, pickup)
+- **MenuCategory** — Grouped menu sections
+- **MenuItem** — Products with price in integer cents
+- **MenuItemOption** — Option groups (Size, Milk, Extras, Sugar)
+- **MenuItemOptionValue** — Individual choices with optional price
+- **CafeTable** — Tables with unique QR tokens
+- **Order** — Orders with type, status, payment status
+- **OrderItem** — Line items with snapshotted name/price/options
 
-MVP Design Studio should support:
+All prices stored in **cents** (integers). Server-side recalculation prevents price manipulation.
 
-- Template preset selection
-- Theme colour editing
-- Logo upload
-- Hero image upload
-- Hero text editing
-- Section show/hide
-- Section ordering
-- Gallery image management
-- Save draft
-- Preview
-- Publish
-- Reset to default
+### Migrations
 
-Later, advanced WYSIWYG support can be added with:
-
-- Tiptap for rich text sections
-- GrapesJS for advanced drag-and-drop campaign pages
-
-#### Planned Database Models
-
-The feature will add:
-
-- `CafeTheme`
-- `CafePageSection`
-- `CafeMedia`
-
-These models will store published design settings, draft design settings, page sections, and uploaded media.
-
-#### Publish Flow
-
-Changes must follow this flow:
-
-```
-Draft → Preview → Publish
+```bash
+pnpm prisma migrate dev     # Development — creates migration files
+pnpm prisma migrate deploy  # Production — applies pending migrations
+pnpm db:seed                # Seeds demo data for local development
 ```
 
-Public pages should use the published design only. Draft changes must not affect the live café website until the owner clicks Publish.
+### Indexes
 
-#### Access Rules
+Migration `0002_add_core_indexes` adds 8 indexes and 2 unique constraints for:
+- Order lookups by cafe, status, and order number
+- Menu item availability filtering
+- Table lookups by cafe
+- User uniqueness by email
 
-MVP access:
+## Running Tests
 
-| Role | Can edit website design |
-|------|------------------------|
-| PLATFORM_ADMIN | Yes — all cafés |
-| CAFE_OWNER | Yes — own café |
-| CAFE_MANAGER | Yes — own café |
-| CAFE_STAFF | No |
+```bash
+# Unit tests (Vitest)
+pnpm test
 
-#### Recommended Timeline
+# All checks (CI equivalent)
+pnpm lint && pnpm typecheck && pnpm test && pnpm build
+```
 
-The Design Studio should not block the core QR ordering product.
+Current coverage: **46 tests** across 6 files — status machine, option validation, price calculation, auth guards, settings enforcement, duplicate detection.
 
-Recommended order:
+### Load Testing
 
-| Week | Focus |
-|------|-------|
-| 2 | Customer ordering |
-| 3 | Admin orders, menu, tables, QR generation |
-| 4 | Website Builder MVP |
-| 5 | Stripe payment |
-| 6 | SaaS billing |
+```bash
+# Prerequisites: k6 installed, test server running on :3100
 
-#### Done Definition
+k6 run tests/load/customer-order-flow.js   # 50 menu users
+k6 run tests/load/checkout-spike.js        # 20/50/100 simultaneous orders
+k6 run tests/load/admin-orders-polling.js  # 5/10 admin polling screens
+```
 
-The Design Studio feature is done only when:
+See [docs/load-testing.md](docs/load-testing.md) for full results.
 
-- Admin website builder page exists
-- Café owner can edit theme
-- Café owner can change photos
-- Café owner can manage page sections
-- Draft save works
-- Preview works
-- Publish works
-- Public café page renders published design
-- Menu item photos can be changed
-- Staff cannot edit website design
-- Ordering flow is not broken
-- Lint passes
-- Typecheck passes
-- Build passes
-
-### Phase 2 — Online Payment
-- Stripe Checkout Session integration
-- Payment webhook (checkout.session.completed, expired, payment_failed)
-- Paid / unpaid / failed / refunded order status
-- Refund tracking
-- Receipt email (optional)
-
-### Phase 3 — SaaS Business Platform
-- Subscription billing for cafe owners (Stripe)
-- Owner onboarding
-- Plan limits (Starter / Professional / Premium)
-- Tenant dashboard
-- Custom subdomain support
-- White-label settings
-- Platform admin dashboard (view/suspend cafes, manage subscriptions, platform revenue)
-
-### Phase 4 — Premium Features
-- Kitchen Display Screen
-- Receipt printer support
-- Sales reports
-- Staff roles (CAFE_MANAGER, CAFE_STAFF)
-- Discounts / coupons
-- Customer accounts
-- Loyalty points
-- Square POS integration
-- Multi-location support
-
-## User Roles
-
-| Role | Capabilities |
-|------|-------------|
-| **Platform Admin** | View all cafes, manage subscriptions, suspend cafes, view platform revenue, system settings |
-| **Cafe Owner** | Manage cafe profile, menu, opening hours, tables/QR codes, orders, reports, staff accounts |
-| **Cafe Staff** | View incoming orders, change order status, print dockets, view active order queue |
-| **Customer** | Scan QR code, browse menu, add items to cart, place order, pay online or at counter, track order status |
-
-## Repository Structure
+## Project Structure
 
 ```
-coffee-qr-platform/
 ├── app/
-│   ├── (public)/
-│   │   ├── page.tsx
-│   │   └── cafe/[slug]/
-│   │       ├── page.tsx
-│   │       ├── order/
-│   │       │   ├── page.tsx
-│   │       │   ├── checkout/page.tsx
-│   │       │   └── success/page.tsx
-│   │       └── ...
-│   ├── (admin)/
-│   │   └── admin/
-│   │       ├── login/page.tsx
-│   │       ├── dashboard/page.tsx
-│   │       ├── orders/page.tsx
-│   │       ├── menu/page.tsx
-│   │       ├── tables/page.tsx
-│   │       ├── settings/page.tsx
-│   │       └── reports/page.tsx
-│   └── api/
-│       ├── orders/route.ts
-│       ├── menu/route.ts
-│       ├── tables/route.ts
-│       ├── payments/stripe/
-│       │   ├── checkout/route.ts
-│       │   └── webhook/route.ts
-│       └── qr/route.ts
-├── components/
-│   ├── public/
-│   ├── admin/
-│   ├── cart/
-│   ├── menu/
-│   ├── orders/
-│   └── layout/
+│   ├── admin/           # Admin dashboard (protected)
+│   ├── api/             # API routes
+│   └── cafe/[slug]/     # Public customer pages
+├── components/          # Reusable UI components
 ├── lib/
-│   ├── auth.ts
-│   ├── db.ts
-│   ├── stripe.ts
-│   ├── tenant.ts
-│   ├── permissions.ts
-│   ├── money.ts
-│   ├── qr.ts
-│   └── validations.ts
+│   ├── api/             # Response helpers (ok, badRequest, handleAuthError, etc.)
+│   ├── auth/            # Auth guards, role access, JWT helpers
+│   ├── orders/          # Order creation pipeline, status machine, validation
+│   └── generated/       # Prisma client (generated)
 ├── prisma/
 │   ├── schema.prisma
 │   ├── migrations/
 │   └── seed.ts
 ├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── e2e/
-├── public/
-│   ├── logos/
-│   └── qr/
+│   ├── unit/            # Vitest unit tests
+│   └── load/            # k6 load test scripts
 ├── docs/
-│   ├── architecture.md
-│   ├── api.md
-│   ├── database.md
-│   ├── deployment.md
-│   ├── testing.md
-│   ├── admin-guide.md
-│   └── customer-flow.md
-├── .github/workflows/ci.yml
-├── docker-compose.yml
-├── Dockerfile
-├── package.json
-├── .env.example
-└── README.md
+│   ├── load-testing.md
+│   └── https-troubleshooting.md
+├── scripts/             # Deployment scripts (test server)
+└── ecosystem.config.js  # PM2 production config
 ```
 
-## Local Setup
+## CI/CD
 
-### Prerequisites
-- Node.js 22+
-- pnpm 10+
-- Docker (for local PostgreSQL)
+GitHub Actions runs on push to `dev`/`main` and pull requests:
 
-### Step 1: Create project
+1. Checkout
+2. Setup pnpm + Node 22
+3. `pnpm install --frozen-lockfile`
+4. Wait for Postgres (service container)
+5. `pnpm lint`
+6. `pnpm typecheck`
+7. `pnpm prisma generate`
+8. `pnpm test`
+9. `pnpm build`
 
-```bash
-pnpm create next-app coffee-qr-platform
-cd coffee-qr-platform
-```
-
-Enable TypeScript, ESLint, Tailwind CSS, App Router, and import aliases.
-
-### Step 2: Install core packages
-
-```bash
-pnpm add @prisma/client zod react-hook-form @hookform/resolvers
-pnpm add stripe qrcode date-fns clsx tailwind-merge
-pnpm add lucide-react
-pnpm add -D prisma tsx
-```
-
-### Step 3: Install UI components
-
-```bash
-pnpm dlx shadcn@latest init
-pnpm dlx shadcn@latest add button card input textarea select dialog table badge tabs dropdown-menu form sheet toast
-```
-
-### Step 4: Set up Prisma
-
-```bash
-pnpm prisma init
-```
-
-### Step 5: Start local database
-
-```bash
-docker compose up -d
-```
-
-### Step 6: Run migrations and seed
-
-```bash
-pnpm prisma migrate dev --name init
-pnpm prisma generate
-pnpm db:seed
-```
-
-## Environment Variables
-
-```env
-DATABASE_URL="postgresql://coffee_user:coffee_password@localhost:5432/coffee_qr_platform"
-NEXT_PUBLIC_APP_URL="http://localhost:3000"
-STRIPE_SECRET_KEY=""
-STRIPE_WEBHOOK_SECRET=""
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=""
-EMAIL_FROM=""
-SMTP_HOST=""
-SMTP_PORT=""
-SMTP_USER=""
-SMTP_PASSWORD=""
-```
-
-See `.env.example` for the full list.
-
-## Database
-
-### Core Models
-- **User** — platform admins, cafe owners, managers, staff
-- **Cafe** — tenant (each coffee shop is one cafe)
-- **CafeSettings** — ordering toggles, opening hours
-- **MenuCategory** — grouped menu sections
-- **MenuItem** — products with price in cents
-- **MenuItemOption** — option groups (size, milk, extras)
-- **MenuItemOptionValue** — individual choices with optional price
-- **CafeTable** — tables with unique QR tokens
-- **Order** — orders with type, status, payment status
-- **OrderItem** — line items with snapshotted name/price/options
-
-All prices stored in **cents** (integers). Every table scoped by `cafeId` for tenant isolation.
-
-### Seed Data
-
-```bash
-pnpm db:seed
-```
-
-Seeds: 1 platform admin, 1 demo cafe, 1 demo owner, 5 categories, 7 menu items with options, and 10 tables.
-
-## Testing
-
-```bash
-# Unit tests
-pnpm test
-
-# Integration tests
-pnpm test:integration
-
-# E2E tests (Playwright)
-pnpm test:e2e
-
-# Full check
-pnpm lint && pnpm typecheck && pnpm test && pnpm build
-```
-
-### Critical E2E Flow
-1. Customer opens QR URL
-2. Selects Large Latte with Oat milk and Extra shot
-3. Adds to cart
-4. Submits pay-at-counter order
-5. Sees order success page
-6. Staff dashboard shows new order
-7. Staff marks order → Preparing → Ready → Completed
-
-## Build
-
-```bash
-pnpm build
-```
+CI must pass before merging. Configuration at `.github/workflows/ci.yml`.
 
 ## Deployment
 
-### Recommended Stack
-- Cloudflare DNS
-- VPS (Ubuntu)
-- Docker + Docker Compose
-- PostgreSQL container
-- Next.js app container
-- Caddy or Nginx reverse proxy
-- GitHub Actions CI for automated deployment
+### Test Server
 
-### Steps
-1. Buy domain and point to Cloudflare
-2. Provision VPS and install Docker
-3. Clone repo and create production `.env`
-4. Run database migration
-5. Build and start with Docker Compose
-6. Enable HTTPS via Caddy/Nginx
-7. Test public flow, admin login, QR scan, and Stripe webhook
+The project includes scripts for deploying a test instance on port 3100:
 
-## Performance Targets
+```bash
+./scripts/deploy-test-app.sh   # Build, migrate, seed, start
+./scripts/stop-test-server.sh  # Stop test server
+./scripts/check-test-server.sh # Health check
+```
 
-| Metric | Target |
-|--------|--------|
-| Public menu page load | < 2s |
-| Order submission | < 3s |
-| Admin order refresh (polling) | < 5s |
-| QR scan to menu open | < 3s |
+Test URL: `http://coffee-test.tnaprovider.com.au:80`
 
-## Mobile UX
+### Production
 
-- Mobile-first customer pages
-- Big buttons, sticky cart, clear photos
-- Guest ordering (no account required)
-- Checkout in under 1 minute
-- Staff dashboard works on iPad, Android tablet, laptop, and phone
+Deployed on a VPS (Vultr, Ubuntu 26.04, 2 vCPU, 4 GB RAM) with:
+
+- **Reverse proxy**: Caddy v2.11 (auto-TLS via Cloudflare DNS)
+- **Process manager**: PM2 with auto-restart (`ecosystem.config.js`)
+- **Database**: PostgreSQL 18 (local)
+- **Memory limit**: 1 GB (PM2 `max_memory_restart`)
+
+```bash
+# Production start
+pm2 start ecosystem.config.js
+pm2 save
+pm2 startup
+```
+
+### Architecture Notes
+
+- **Order concurrency**: Uses `pg_advisory_xact_lock` per cafeId to serialize order number generation inside Prisma transactions. No duplicate order numbers under concurrent load.
+- **Connection pooling**: Prisma default pool (5 connections on 2-vCPU). Tested with 100 concurrent orders + 10 admin polls without exhaustion.
+- **Query patterns**: Active-status scoped queries, index-backed lookups by cafeId. Admin polling uses 5-second intervals.
 
 ## Git Workflow
 
-```bash
+```
 main ← dev ← feature/...
 ```
 
@@ -463,56 +218,35 @@ main ← dev ← feature/...
 - Commit format: `feat:`, `fix:`, `test:`, `docs:`, `refactor:`
 
 ### Pre-commit Checklist
-- [ ] App starts without crash
-- [ ] No TypeScript errors
-- [ ] No lint errors
-- [ ] QR URL opens correct cafe
-- [ ] Customer can place order
-- [ ] Staff dashboard receives order
-- [ ] Migration runs cleanly
+
+- [ ] `pnpm lint` — no errors
+- [ ] `pnpm typecheck` — passes
+- [ ] `pnpm test` — all pass
+- [ ] `pnpm build` — succeeds
+- [ ] Migration runs cleanly (if schema changed)
 - [ ] No secrets committed
-- [ ] README/docs updated if needed
 
-## CI/CD
+## Load Test Results
 
-GitHub Actions runs on push to `dev`/`main` and pull requests:
-- `pnpm install --frozen-lockfile`
-- `pnpm lint`
-- `pnpm typecheck`
-- `pnpm prisma generate`
-- `pnpm test`
-- `pnpm build`
+| Scenario | Users | Orders | Error Rate | p95 Response |
+|---|---|---|---|---|
+| Menu browsing | 50 | — | 0% | 57 ms |
+| Checkout spike | 20 | 20 | 0% | — |
+| Checkout spike | 50 | 50 | 0% | — |
+| Checkout spike | 100 | 100 | 0% | 2.26 s |
+| Admin polling (5 users) | 5 | — | 0% | — |
+| Admin polling (10 users) | 10 | — | 0% | 207 ms |
 
-Do not merge if CI fails or the critical E2E order flow fails.
+0 duplicate order numbers across 231 total orders. Server stable for entire test duration (~10 min).
 
-## MVP Acceptance Criteria
+## Troubleshooting
 
-- [ ] SaaS landing page exists
-- [ ] Demo cafe page loads with seeded menu
-- [ ] QR code opens order page with correct table
-- [ ] Menu displays categories, items, and customisation options
-- [ ] Customer can add customised item to cart
-- [ ] Customer can place pay-at-counter order
-- [ ] Customer receives order confirmation
-- [ ] Staff dashboard receives order in real-time
-- [ ] Staff can update order status (New → Ready)
-- [ ] Admin can manage menu, tables, and generate QR codes
-- [ ] Database migration and seed work
-- [ ] Lint, typecheck, tests, and build pass
-- [ ] Production QR scan works on a real phone
+See [docs/https-troubleshooting.md](docs/https-troubleshooting.md) for Caddy auto-TLS diagnostics.
 
-Score must be **9/10 or higher** to be considered done.
-
-## Build Timeline
-
-| Week | Focus | Deliverable |
-|------|-------|-------------|
-| 1 | Foundation | Repo, Next.js, Prisma schema, seed data, public cafe page |
-| 2 | Customer Ordering | Order page, item modal, cart, checkout, order API, success page |
-| 3 | Admin Dashboard | Login, live orders, status updates, menu/table management, QR generation |
-| 4 | Testing & Deployment | Unit/integration/E2E tests, CI, Docker, VPS deployment |
-| 5 | Online Payment | Stripe Checkout, webhooks, payment status flow |
-| 6 | SaaS Billing | Platform admin, subscriptions, plan limits, cafe suspension |
+Key issues resolved:
+- Order number collision under concurrent load — fixed with `pg_advisory_xact_lock`
+- MULTIPLE option validation incorrectly rejecting valid selections — fixed in `validate-order-options.ts`
+- Unreachable `return serverError()` after `handleAuthError` — removed across 6 route files
 
 ## License
 

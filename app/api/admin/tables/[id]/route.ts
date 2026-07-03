@@ -1,6 +1,6 @@
 import { requireTableAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, badRequest, notFound, handleAuthError } from "@/lib/api/response";
+import { ok, notFound, handleAuthError } from "@/lib/api/response";
 import crypto from "node:crypto";
 
 export async function PATCH(

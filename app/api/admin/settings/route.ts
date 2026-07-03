@@ -1,6 +1,6 @@
 import { requireSettingsAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, notFound, handleAuthError } from "@/lib/api/response";
+import { ok, notFound, handleAuthError } from "@/lib/api/response";
 
 export async function GET() {
   try {

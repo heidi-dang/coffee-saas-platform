@@ -1,6 +1,6 @@
 import { requireMenuAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, badRequest, handleAuthError } from "@/lib/api/response";
+import { ok, badRequest, handleAuthError } from "@/lib/api/response";
 
 export async function GET() {
   try {

@@ -1,11 +1,15 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches:
-      - dev
-      - main
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+env:
+  DATABASE_URL: postgresql://coffee_user:coffee_password@localhost:5432/coffee_saas_platform_test
+  JWT_SECRET: test-jwt-secret-at-least-32-characters-long
+  APP_ENV: test
 
 jobs:
   build-test:
@@ -13,34 +17,56 @@ jobs:
 
     services:
       postgres:
-        image: postgres:latest
+        image: postgres:18
         env:
-          POSTGRES_DB: coffee_saas_platform_test
           POSTGRES_USER: coffee_user
           POSTGRES_PASSWORD: coffee_password
+          POSTGRES_DB: coffee_saas_platform_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
         ports:
           - 5432:5432
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - uses: pnpm/action-setup@v4
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 10
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: pnpm lint
+      - name: Wait for Postgres
+        run: |
+          for i in $(seq 1 30); do
+            pg_isready -h localhost -p 5432 -U coffee_user && exit 0
+            sleep 1
+          done
+          exit 1
 
-      - run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
 
-      - run: pnpm prisma generate
+      - name: Typecheck
+        run: pnpm typecheck
 
-      - run: pnpm test
+      - name: Prisma generate
+        run: pnpm prisma generate
 
-      - run: pnpm build
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
