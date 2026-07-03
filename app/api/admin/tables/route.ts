@@ -1,7 +1,6 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { canManageTables } from "@/lib/permissions";
+import { requireTableAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
+import { ok, unauthorized, badRequest, serverError } from "@/lib/api/response";
 import crypto from "node:crypto";
 
 function generateQrToken(): string {
@@ -9,46 +8,51 @@ function generateQrToken(): string {
 }
 
 export async function GET() {
-  const user = await getSession();
-  if (!user || !user.cafeId || !canManageTables(user as any)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await requireTableAccess();
+
+    const [tables, cafe] = await Promise.all([
+      db.cafeTable.findMany({
+        where: { cafeId: user.cafeId },
+        orderBy: { tableNumber: "asc" },
+      }),
+      db.cafe.findUnique({
+        where: { id: user.cafeId },
+        select: { slug: true },
+      }),
+    ]);
+
+    return ok({ tables, cafeSlug: cafe?.slug || "" });
+  } catch (error: any) {
+    if (error.name === "AuthError") {
+      return unauthorized(error.message);
+    }
+    return serverError(error);
   }
-
-  const [tables, cafe] = await Promise.all([
-    db.cafeTable.findMany({
-      where: { cafeId: user.cafeId },
-      orderBy: { tableNumber: "asc" },
-    }),
-    db.cafe.findUnique({
-      where: { id: user.cafeId },
-      select: { slug: true },
-    }),
-  ]);
-
-  return NextResponse.json({ tables, cafeSlug: cafe?.slug || "" });
 }
 
 export async function POST(request: Request) {
-  const user = await getSession();
-  if (!user || !user.cafeId || !canManageTables(user as any)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await requireTableAccess();
+
+    const { tableNumber } = await request.json();
+    if (!tableNumber) {
+      return badRequest("Table number is required");
+    }
+
+    const table = await db.cafeTable.create({
+      data: {
+        cafeId: user.cafeId,
+        tableNumber,
+        qrToken: generateQrToken(),
+      },
+    });
+
+    return ok({ table });
+  } catch (error: any) {
+    if (error.name === "AuthError") {
+      return unauthorized(error.message);
+    }
+    return serverError(error);
   }
-
-  const { tableNumber } = await request.json();
-  if (!tableNumber) {
-    return NextResponse.json(
-      { error: "Table number is required" },
-      { status: 400 }
-    );
-  }
-
-  const table = await db.cafeTable.create({
-    data: {
-      cafeId: user.cafeId,
-      tableNumber,
-      qrToken: generateQrToken(),
-    },
-  });
-
-  return NextResponse.json({ table });
 }

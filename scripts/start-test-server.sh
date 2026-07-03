@@ -63,7 +63,7 @@ NODE_ENV=production pnpm build 2>&1 | tail -10
 
 # ── Start ───────────────────────────────────────────────────────────
 echo "==> Starting test server on port $TEST_APP_PORT..."
-PORT="$TEST_APP_PORT" NODE_ENV=production APP_ENV=test nohup pnpm start --port "$TEST_APP_PORT" >> "$LOG_FILE" 2>&1 &
+PORT="$TEST_APP_PORT" NODE_ENV=production APP_ENV=test nohup ./node_modules/.bin/next start --port "$TEST_APP_PORT" >> "$LOG_FILE" 2>&1 &
 PID=$!
 echo "$PID" > "$PID_FILE"
 echo "Started with PID $PID"

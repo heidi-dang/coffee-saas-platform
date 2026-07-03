@@ -94,6 +94,9 @@ model MenuCategory {
   sortOrder Int        @default(0)
   isActive  Boolean    @default(true)
   items     MenuItem[]
+
+  @@index([cafeId, sortOrder])
+  @@index([cafeId, isActive])
 }
 
 model MenuItem {
@@ -111,6 +114,10 @@ model MenuItem {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   options     MenuItemOption[]
+
+  @@index([cafeId, categoryId])
+  @@index([cafeId, isAvailable])
+  @@index([categoryId, sortOrder])
 }
 
 model MenuItemOption {
@@ -143,6 +150,9 @@ model CafeTable {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   orders      Order[]
+
+  @@unique([cafeId, tableNumber])
+  @@index([cafeId, isActive])
 }
 
 model Order {
@@ -164,6 +174,11 @@ model Order {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   items           OrderItem[]
+
+  @@unique([cafeId, orderNumber])
+  @@index([cafeId, status])
+  @@index([cafeId, createdAt])
+  @@index([tableId])
 }
 
 model OrderItem {

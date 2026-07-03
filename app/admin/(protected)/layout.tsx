@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { canManageMenu, canManageTables, canManageSettings } from "@/lib/permissions";
 import { AdminShell } from "./admin-shell";
 
 export default async function AdminLayout({
@@ -17,13 +16,13 @@ export default async function AdminLayout({
   const pathname = headersList.get("x-invoke-path") || headersList.get("next-url") || "";
 
   if (user.cafeId) {
-    if (pathname.startsWith("/admin/menu") && !canManageMenu(user)) {
+    if (pathname.startsWith("/admin/menu") && !["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
       redirect("/admin/orders");
     }
-    if (pathname.startsWith("/admin/tables") && !canManageTables(user)) {
+    if (pathname.startsWith("/admin/tables") && !["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
       redirect("/admin/orders");
     }
-    if (pathname.startsWith("/admin/settings") && !canManageSettings(user)) {
+    if (pathname.startsWith("/admin/settings") && !["PLATFORM_ADMIN", "CAFE_OWNER"].includes(user.role)) {
       redirect("/admin/orders");
     }
   }

@@ -1,30 +1,9 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-
-interface OrderItem {
-  id: string;
-  itemNameSnapshot: string;
-  quantity: number;
-  unitPriceCents: number;
-  totalCents: number;
-  optionsSnapshot: Record<string, any>[] | null;
-  notes: string | null;
-}
-
-interface Order {
-  id: string;
-  orderNumber: number;
-  type: string;
-  status: string;
-  paymentStatus: string;
-  customerName: string | null;
-  customerNote: string | null;
-  totalCents: number;
-  createdAt: string;
-  table: { tableNumber: string } | null;
-  items: OrderItem[];
-}
+import { fetchOrders, updateOrderStatus } from "@/lib/api/admin-orders-client";
+import type { Order } from "@/lib/api/admin-orders-client";
+import { getAllowedTransitions } from "@/lib/orders/status-machine";
 
 const statusLanes = ["NEW", "ACCEPTED", "PREPARING", "READY", "COMPLETED", "CANCELLED"];
 
@@ -38,22 +17,13 @@ const statusColors: Record<string, string> = {
 };
 
 function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) {
-  const actions: Record<string, string[]> = {
-    NEW: ["ACCEPTED", "CANCELLED"],
-    ACCEPTED: ["PREPARING", "CANCELLED"],
-    PREPARING: ["READY", "CANCELLED"],
-    READY: ["COMPLETED"],
-    COMPLETED: [],
-    CANCELLED: [],
-  };
-
   async function handleStatus(newStatus: string) {
-    await fetch(`/api/admin/orders/${order.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: newStatus }),
-    });
-    onUpdate();
+    try {
+      await updateOrderStatus(order.id, newStatus);
+      onUpdate();
+    } catch (err) {
+      console.error("Failed to update order:", err);
+    }
   }
 
   const created = new Date(order.createdAt);
@@ -61,6 +31,8 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
     hour: "2-digit",
     minute: "2-digit",
   });
+
+  const allowedActions = getAllowedTransitions(order.status as any);
 
   return (
     <div
@@ -127,9 +99,9 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
         </span>
       </div>
 
-      {actions[order.status]?.length > 0 && (
+      {allowedActions.length > 0 && (
         <div className="flex flex-wrap gap-1 pt-1 border-t">
-          {actions[order.status].map((action) => (
+          {allowedActions.map((action) => (
             <button
               key={action}
               onClick={() => handleStatus(action)}
@@ -150,11 +122,10 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchOrders = useCallback(async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/orders?activeOnly=true");
-      const data = await res.json();
-      setOrders(data.orders || []);
+      const data = await fetchOrders(true);
+      setOrders(data.orders);
     } catch {
       // ignore polling errors
     } finally {
@@ -163,10 +134,10 @@ export default function AdminOrdersPage() {
   }, []);
 
   useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 5000);
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, [fetchOrders]);
+  }, [fetchData]);
 
   const grouped = statusLanes.reduce(
     (acc, status) => {
@@ -196,7 +167,7 @@ export default function AdminOrdersPage() {
                   <OrderCard
                     key={order.id}
                     order={order}
-                    onUpdate={fetchOrders}
+                    onUpdate={fetchData}
                   />
                 ))}
               </div>

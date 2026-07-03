@@ -1,69 +1,47 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
+import { requireCafeUser } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-
-const allowedTransitions: Record<string, string[]> = {
-  NEW: ["ACCEPTED", "CANCELLED"],
-  ACCEPTED: ["PREPARING", "CANCELLED"],
-  PREPARING: ["READY", "CANCELLED"],
-  READY: ["COMPLETED"],
-  COMPLETED: [],
-  CANCELLED: [],
-};
+import { ok, unauthorized, badRequest, notFound, serverError } from "@/lib/api/response";
+import { canTransition, isValidStatus } from "@/lib/orders/status-machine";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const user = await getSession();
-  if (!user || !user.cafeId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await requireCafeUser();
+    const { id } = await params;
+    const { status: newStatus } = await request.json();
+
+    if (!newStatus) {
+      return badRequest("Status is required");
+    }
+
+    if (!isValidStatus(newStatus)) {
+      return badRequest("Invalid status");
+    }
+
+    const order = await db.order.findUnique({
+      where: { id, cafeId: user.cafeId },
+    });
+
+    if (!order) {
+      return notFound("Order not found");
+    }
+
+    if (!canTransition(order.status as any, newStatus)) {
+      return badRequest(`Cannot transition from ${order.status} to ${newStatus}`);
+    }
+
+    const updated = await db.order.update({
+      where: { id },
+      data: { status: newStatus },
+    });
+
+    return ok({ order: updated });
+  } catch (error: any) {
+    if (error.name === "AuthError") {
+      return unauthorized(error.message);
+    }
+    return serverError(error);
   }
-
-  const { id } = await params;
-  const { status: newStatus } = await request.json();
-
-  if (!newStatus) {
-    return NextResponse.json(
-      { error: "Status is required" },
-      { status: 400 }
-    );
-  }
-
-  const validStatuses = [
-    "NEW",
-    "ACCEPTED",
-    "PREPARING",
-    "READY",
-    "COMPLETED",
-    "CANCELLED",
-  ];
-  if (!validStatuses.includes(newStatus)) {
-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
-  }
-
-  const order = await db.order.findUnique({
-    where: { id, cafeId: user.cafeId },
-  });
-
-  if (!order) {
-    return NextResponse.json({ error: "Order not found" }, { status: 404 });
-  }
-
-  const allowed = allowedTransitions[order.status];
-  if (!allowed || !allowed.includes(newStatus)) {
-    return NextResponse.json(
-      {
-        error: `Cannot transition from ${order.status} to ${newStatus}`,
-      },
-      { status: 400 }
-    );
-  }
-
-  const updated = await db.order.update({
-    where: { id },
-    data: { status: newStatus },
-  });
-
-  return NextResponse.json({ order: updated });
 }

@@ -4,27 +4,14 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-
-interface CafeSettings {
-  acceptDineIn: boolean;
-  acceptTakeaway: boolean;
-  acceptPickup: boolean;
-  acceptPayAtCounter: boolean;
-  acceptOnlinePayment: boolean;
-}
-
-interface Cafe {
-  id: string;
-  name: string;
-  phone: string | null;
-  address: string | null;
-}
+import { fetchSettings, updateSettings } from "@/lib/api/admin-settings-client";
+import type { CafeSettings, CafeInfo } from "@/lib/api/admin-settings-client";
 
 export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [cafe, setCafe] = useState<Cafe | null>(null);
+  const [cafe, setCafe] = useState<CafeInfo | null>(null);
   const [settings, setSettings] = useState<CafeSettings>({
     acceptDineIn: true,
     acceptTakeaway: true,
@@ -34,30 +21,34 @@ export default function AdminSettingsPage() {
   });
 
   useEffect(() => {
-    fetch("/api/admin/settings")
-      .then((r) => r.json())
+    fetchSettings()
       .then((data) => {
         setCafe(data.cafe);
         if (data.settings) setSettings(data.settings);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Failed to load settings:", err);
         setLoading(false);
       });
   }, []);
 
   async function handleSave() {
     setSaving(true);
-    await fetch("/api/admin/settings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: cafe?.name,
-        phone: cafe?.phone,
-        address: cafe?.address,
+    try {
+      await updateSettings({
+      name: cafe?.name ?? undefined,
+      phone: cafe?.phone ?? undefined,
+      address: cafe?.address ?? undefined,
         ...settings,
-      }),
-    });
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error("Failed to save settings:", err);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <p className="text-muted-foreground">Loading...</p>;

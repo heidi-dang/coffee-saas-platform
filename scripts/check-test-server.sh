@@ -49,8 +49,10 @@ else
   check "App process (PID file exists)" "false"
 fi
 
-# ── 2. Port check ──────────────────────────────────────────────────
+# ── 2. Port check (with ss fallback) ────────────────────────────────
 if lsof -i ":$PORT" -sTCP:LISTEN -Pn 2>/dev/null | grep -q LISTEN; then
+  check "Port $PORT is listening" "true"
+elif ss -tlnp 2>/dev/null | grep -q ":$PORT "; then
   check "Port $PORT is listening" "true"
 else
   check "Port $PORT is listening" "false"

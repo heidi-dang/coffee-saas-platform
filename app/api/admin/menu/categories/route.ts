@@ -1,46 +1,53 @@
-import { NextResponse } from "next/server";
-import { getSession } from "@/lib/auth";
-import { canManageMenu } from "@/lib/permissions";
+import { requireMenuAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
+import { ok, unauthorized, badRequest, serverError } from "@/lib/api/response";
 
 export async function GET() {
-  const user = await getSession();
-  if (!user || !user.cafeId || !canManageMenu(user as any)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await requireMenuAccess();
+
+    const categories = await db.menuCategory.findMany({
+      where: { cafeId: user.cafeId },
+      orderBy: { sortOrder: "asc" },
+    });
+
+    return ok({ categories });
+  } catch (error: any) {
+    if (error.name === "AuthError") {
+      return unauthorized(error.message);
+    }
+    return serverError(error);
   }
-
-  const categories = await db.menuCategory.findMany({
-    where: { cafeId: user.cafeId },
-    orderBy: { sortOrder: "asc" },
-  });
-
-  return NextResponse.json({ categories });
 }
 
 export async function POST(request: Request) {
-  const user = await getSession();
-  if (!user || !user.cafeId || !canManageMenu(user as any)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  try {
+    const user = await requireMenuAccess();
+
+    const { name, sortOrder } = await request.json();
+    if (!name) {
+      return badRequest("Category name is required");
+    }
+
+    const maxOrder = await db.menuCategory.findFirst({
+      where: { cafeId: user.cafeId },
+      orderBy: { sortOrder: "desc" },
+      select: { sortOrder: true },
+    });
+
+    const category = await db.menuCategory.create({
+      data: {
+        cafeId: user.cafeId,
+        name,
+        sortOrder: sortOrder ?? (maxOrder?.sortOrder ?? 0) + 1,
+      },
+    });
+
+    return ok({ category });
+  } catch (error: any) {
+    if (error.name === "AuthError") {
+      return unauthorized(error.message);
+    }
+    return serverError(error);
   }
-
-  const { name, sortOrder } = await request.json();
-  if (!name) {
-    return NextResponse.json({ error: "Category name is required" }, { status: 400 });
-  }
-
-  const maxOrder = await db.menuCategory.findFirst({
-    where: { cafeId: user.cafeId },
-    orderBy: { sortOrder: "desc" },
-    select: { sortOrder: true },
-  });
-
-  const category = await db.menuCategory.create({
-    data: {
-      cafeId: user.cafeId,
-      name,
-      sortOrder: sortOrder ?? (maxOrder?.sortOrder ?? 0) + 1,
-    },
-  });
-
-  return NextResponse.json({ category });
 }

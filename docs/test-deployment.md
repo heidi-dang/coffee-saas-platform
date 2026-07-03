@@ -149,6 +149,10 @@ tail -f logs/test-server.log
 | `scripts/deploy-test-app.sh` | Full deploy pipeline |
 | `scripts/check-test-server.sh` | Health check |
 
+## HTTPS
+
+See `docs/htpps-troubleshooting.md` for HTTPS setup and troubleshooting. The test subdomain currently works on HTTP (port 80). HTTPS must be configured before customer demos.
+
 ## Safety Rules
 
 - **Never** modify existing Caddy site blocks

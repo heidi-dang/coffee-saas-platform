@@ -1,32 +1,27 @@
-import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { verifyPassword, createSession, setSessionCookie } from "@/lib/auth";
+import { ok, badRequest, serverError } from "@/lib/api/response";
+import { loginSchema } from "@/lib/validations/auth";
 
 export async function POST(request: Request) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const parsed = loginSchema.safeParse(body);
 
-    if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      );
+    if (!parsed.success) {
+      return badRequest("Email and password are required");
     }
+
+    const { email, password } = parsed.data;
 
     const user = await db.user.findUnique({ where: { email } });
     if (!user || !user.passwordHash) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 }
-      );
+      return badRequest("Invalid email or password");
     }
 
     const valid = await verifyPassword(password, user.passwordHash);
     if (!valid) {
-      return NextResponse.json(
-        { error: "Invalid email or password" },
-        { status: 401 }
-      );
+      return badRequest("Invalid email or password");
     }
 
     const sessionUser = {
@@ -40,12 +35,8 @@ export async function POST(request: Request) {
     const token = await createSession(sessionUser);
     await setSessionCookie(token);
 
-    return NextResponse.json({ user: sessionUser });
+    return ok({ user: sessionUser });
   } catch (error) {
-    console.error("Login error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return serverError(error);
   }
 }

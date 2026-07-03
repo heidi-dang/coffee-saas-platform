@@ -4,14 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, RefreshCw, Download, Trash2 } from "lucide-react";
-
-interface CafeTable {
-  id: string;
-  tableNumber: string;
-  qrToken: string;
-  isActive: boolean;
-  createdAt: string;
-}
+import { fetchTables, createTable, updateTable, deleteTable } from "@/lib/api/admin-tables-client";
+import type { CafeTable } from "@/lib/api/admin-tables-client";
 
 function qrUrl(orderUrl: string, size = 200): string {
   return `/api/qr?data=${encodeURIComponent(orderUrl)}&size=${size}`;
@@ -30,11 +24,15 @@ export default function AdminTablesPage() {
   }
 
   async function loadTables() {
-    const res = await fetch("/api/admin/tables");
-    const data = await res.json();
-    setTables(data.tables || []);
-    setCafeSlug(data.cafeSlug || "");
-    setLoading(false);
+    try {
+      const data = await fetchTables();
+      setTables(data.tables);
+      setCafeSlug(data.cafeSlug || "");
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to load tables:", err);
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
@@ -43,37 +41,41 @@ export default function AdminTablesPage() {
 
   async function addTable() {
     if (!newTableNum.trim()) return;
-    await fetch("/api/admin/tables", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tableNumber: newTableNum }),
-    });
-    setNewTableNum("");
-    loadTables();
+    try {
+      await createTable(newTableNum.trim());
+      setNewTableNum("");
+      await loadTables();
+    } catch (err) {
+      console.error("Failed to add table:", err);
+    }
   }
 
   async function toggleTable(tableId: string, isActive: boolean) {
-    await fetch(`/api/admin/tables/${tableId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !isActive }),
-    });
-    loadTables();
+    try {
+      await updateTable(tableId, { isActive: !isActive });
+      await loadTables();
+    } catch (err) {
+      console.error("Failed to toggle table:", err);
+    }
   }
 
   async function regenerateQr(tableId: string) {
-    await fetch(`/api/admin/tables/${tableId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ regenerateQr: true }),
-    });
-    loadTables();
+    try {
+      await updateTable(tableId, { regenerateQr: true });
+      await loadTables();
+    } catch (err) {
+      console.error("Failed to regenerate QR:", err);
+    }
   }
 
-  async function deleteTable(tableId: string) {
+  async function handleDeleteTable(tableId: string) {
     if (!confirm("Delete this table?")) return;
-    await fetch(`/api/admin/tables/${tableId}`, { method: "DELETE" });
-    loadTables();
+    try {
+      await deleteTable(tableId);
+      await loadTables();
+    } catch (err) {
+      console.error("Failed to delete table:", err);
+    }
   }
 
   function downloadQr(url: string, label: string) {
@@ -121,6 +123,7 @@ export default function AdminTablesPage() {
           onChange={(e) => setNewTableNum(e.target.value)}
           placeholder="Table number"
           className="max-w-xs"
+          onKeyDown={(e) => e.key === "Enter" && addTable()}
         />
         <Button size="sm" onClick={addTable}>
           <Plus className="h-4 w-4 mr-1" /> Add Table
@@ -161,9 +164,7 @@ export default function AdminTablesPage() {
 
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() =>
-                    toggleTable(table.id, table.isActive)
-                  }
+                  onClick={() => toggleTable(table.id, table.isActive)}
                   className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
                 >
                   {table.isActive ? "Disable" : "Enable"}
@@ -176,24 +177,20 @@ export default function AdminTablesPage() {
                   New QR
                 </button>
                 <button
-                  onClick={() =>
-                    downloadQr(url, `Table-${table.tableNumber}`)
-                  }
+                  onClick={() => downloadQr(url, `Table-${table.tableNumber}`)}
                   className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
                 >
                   <Download className="h-3 w-3 inline mr-1" />
                   Download
                 </button>
                 <button
-                  onClick={() =>
-                    printQr(url, `Table ${table.tableNumber}`)
-                  }
+                  onClick={() => printQr(url, `Table ${table.tableNumber}`)}
                   className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
                 >
                   Print
                 </button>
                 <button
-                  onClick={() => deleteTable(table.id)}
+                  onClick={() => handleDeleteTable(table.id)}
                   className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100"
                 >
                   <Trash2 className="h-3 w-3" />
