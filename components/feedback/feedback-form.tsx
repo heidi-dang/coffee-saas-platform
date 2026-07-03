@@ -31,7 +31,7 @@ export function FeedbackForm({ orderId, cafeSlug }: FeedbackFormProps) {
       const res = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId, rating, comment: comment || undefined }),
+        body: JSON.stringify({ cafeSlug, orderId, rating, comment: comment || undefined }),
       });
 
       if (res.ok) {

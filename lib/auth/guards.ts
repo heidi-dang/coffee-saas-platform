@@ -45,6 +45,14 @@ export async function requireDesignStudioAccess(): Promise<SessionUser & { cafeI
   return user;
 }
 
+export async function requireCafeOwnerOrManager(): Promise<SessionUser & { cafeId: string }> {
+  const user = await requireCafeUser();
+  if (!["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
+    throw new AuthError("Forbidden", 403);
+  }
+  return user;
+}
+
 export async function requireOrdersAccess(): Promise<SessionUser & { cafeId: string }> {
   return requireCafeUser();
 }
