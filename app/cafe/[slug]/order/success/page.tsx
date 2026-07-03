@@ -59,7 +59,7 @@ export default async function SuccessPage({
         </p>
         {isPendingPayment && (
           <p className="mt-2 text-sm text-amber-600">
-            Payment received. Your order is being prepared.
+            Payment is being confirmed. Your order will update shortly.
           </p>
         )}
         {isFailedPayment && (
