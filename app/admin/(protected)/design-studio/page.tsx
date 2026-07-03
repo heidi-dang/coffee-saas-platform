@@ -55,7 +55,7 @@ export default function DesignStudioPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 p-6">
+    <div className="mx-auto max-w-7xl space-y-6 p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold">Design Studio</h1>
@@ -64,12 +64,6 @@ export default function DesignStudioPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setTab("preview")}
-            className="rounded border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Preview Draft
-          </button>
           <button
             onClick={() => setPublish({ status: "confirm" })}
             disabled={publish.status === "publishing"}
@@ -85,68 +79,78 @@ export default function DesignStudioPage() {
         <p className="text-xs text-amber-600">Customers cannot see these changes yet.</p>
       </div>
 
-      <div className="flex gap-4 border-b pb-2">
-        {(["sections", "theme", "preview"] as const).map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`text-sm font-medium pb-1 border-b-2 transition ${
-              tab === t ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t === "sections" ? "Sections" : t === "theme" ? "Theme" : "Preview"}
-          </button>
-        ))}
-      </div>
+      <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex-1 space-y-6">
+          <div className="flex gap-4 border-b pb-2">
+            {(["sections", "theme"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`text-sm font-medium pb-1 border-b-2 transition ${
+                  tab === t ? "border-amber-600 text-amber-600" : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {t === "sections" ? "Sections" : "Theme"}
+              </button>
+            ))}
+          </div>
 
-      {publish.status === "confirm" && (
-        <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold">Publish website changes?</h3>
-          <p className="mt-2 text-sm text-gray-600">
-            Customers will see these changes immediately after publishing.
-          </p>
-          <div className="mt-4 flex gap-3">
-            <button
-              onClick={handlePublish}
-              className="rounded bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700"
-            >
-              Publish Website
-            </button>
-            <button
-              onClick={resetPublish}
-              className="rounded bg-gray-200 px-5 py-2 text-sm font-medium hover:bg-gray-300"
-            >
-              Cancel
-            </button>
+          {publish.status === "confirm" && (
+            <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm">
+              <h3 className="text-lg font-semibold">Publish website changes?</h3>
+              <p className="mt-2 text-sm text-gray-600">
+                Customers will see these changes immediately after publishing.
+              </p>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={handlePublish}
+                  className="rounded bg-green-600 px-5 py-2 text-sm font-medium text-white hover:bg-green-700"
+                >
+                  Publish Website
+                </button>
+                <button
+                  onClick={resetPublish}
+                  className="rounded bg-gray-200 px-5 py-2 text-sm font-medium hover:bg-gray-300"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
+          {publish.status === "publishing" && (
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
+              <p className="text-sm text-gray-600">Publishing website...</p>
+            </div>
+          )}
+
+          {publish.status === "error" && (
+            <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+              <p className="text-sm text-red-700">{publish.message}</p>
+              <button
+                onClick={resetPublish}
+                className="mt-2 text-sm text-red-600 underline hover:text-red-800"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {tab === "theme" && <ThemeEditor />}
+          {tab === "sections" && <SectionList />}
+        </div>
+
+        <div className="w-full lg:w-[450px] shrink-0 sticky top-6 self-start">
+          <div className="border rounded-2xl overflow-hidden shadow-xl bg-white flex flex-col h-[85vh]">
+            <div className="bg-stone-100 border-b p-3 flex items-center justify-center text-xs font-bold text-stone-500 tracking-wider">
+              Live Preview
+            </div>
+            <div className="flex-1 overflow-hidden relative">
+              <PreviewFrame />
+            </div>
           </div>
         </div>
-      )}
-
-      {publish.status === "publishing" && (
-        <div className="rounded-lg border border-gray-200 bg-gray-50 p-6 text-center">
-          <p className="text-sm text-gray-600">Publishing website...</p>
-        </div>
-      )}
-
-      {publish.status === "error" && (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm text-red-700">{publish.message}</p>
-          <button
-            onClick={resetPublish}
-            className="mt-2 text-sm text-red-600 underline hover:text-red-800"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {tab === "theme" && <ThemeEditor />}
-      {tab === "sections" && <SectionList />}
-      {tab === "preview" && (
-        <div className="border rounded-lg p-4">
-          <PreviewFrame />
-        </div>
-      )}
+      </div>
     </div>
   );
 }

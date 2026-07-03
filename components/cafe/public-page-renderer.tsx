@@ -46,7 +46,12 @@ function SectionBlock({ section, accentColor }: { section: CafePageSection; acce
       {section.publishedTitle && (
         <h3 className="text-xl md:text-2xl font-black mb-4 tracking-tight">{section.publishedTitle}</h3>
       )}
-      {text && <p className="text-sm md:text-base leading-relaxed opacity-90 whitespace-pre-wrap">{text}</p>}
+      {text && (
+        <div 
+          className="prose prose-sm md:prose-base opacity-90 max-w-none"
+          dangerouslySetInnerHTML={{ __html: text }}
+        />
+      )}
       {imageUrl && (
         <img src={imageUrl} alt="" className="mt-6 h-56 md:h-72 w-full rounded-xl object-cover shadow-sm" />
       )}

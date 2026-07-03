@@ -2,9 +2,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { CafePageSection } from "@/lib/generated/prisma/client";
-import { getSections, deleteSection } from "@/lib/api/admin-design-studio-client";
+import { getSections, deleteSection, updateSection } from "@/lib/api/admin-design-studio-client";
 import { SectionCard } from "./section-card";
 import { SectionEditor } from "./section-editor";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 
 export function SectionList() {
   const [sections, setSections] = useState<CafePageSection[]>([]);
@@ -16,7 +18,9 @@ export function SectionList() {
     setError("");
     try {
       const data = await getSections();
-      setSections(data as CafePageSection[]);
+      // Ensure sorted by sortOrder initially
+      const sorted = (data as CafePageSection[]).sort((a, b) => a.sortOrder - b.sortOrder);
+      setSections(sorted);
     } catch {
       setError("Could not load sections. Please try again.");
     } finally {
@@ -25,6 +29,33 @@ export function SectionList() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      setSections((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        
+        // Background sync to db
+        Promise.all(newItems.map((item, index) => 
+          updateSection(item.id, { sortOrder: index })
+        )).catch(console.error);
+        
+        return newItems;
+      });
+    }
+  };
 
   const handleHide = async (id: string) => {
     if (!confirm("Hide this section from the draft? Customers will still see the published version until you publish.")) return;
@@ -90,17 +121,28 @@ export function SectionList() {
           </button>
         </div>
       ) : (
-        <div className="space-y-2">
-          {sections.map((s) => (
-            <SectionCard
-              key={s.id}
-              section={s}
-              onEdit={(sec) => setEditing(sec)}
-              onDelete={handleHide}
-              isPublished={publishedIds.has(s.id)}
-            />
-          ))}
-        </div>
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext 
+            items={sections.map(s => s.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="space-y-2">
+              {sections.map((s) => (
+                <SectionCard
+                  key={s.id}
+                  section={s}
+                  onEdit={(sec) => setEditing(sec)}
+                  onDelete={handleHide}
+                  isPublished={publishedIds.has(s.id)}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       )}
     </div>
   );

@@ -3,6 +3,36 @@
 import { useState } from "react";
 import type { CafePageSection } from "@/lib/generated/prisma/client";
 import { createSection, updateSection } from "@/lib/api/admin-design-studio-client";
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import { Bold, Italic, List, ListOrdered, Strikethrough } from 'lucide-react';
+
+const RichTextEditor = ({ content, onChange }: { content: string, onChange: (val: string) => void }) => {
+  const editor = useEditor({
+    extensions: [StarterKit],
+    content,
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML())
+    },
+  })
+
+  if (!editor) return null
+
+  return (
+    <div className="mt-1 w-full rounded border bg-white flex flex-col overflow-hidden">
+      <div className="bg-stone-100 p-2 border-b flex flex-wrap gap-1 items-center">
+        <button type="button" onClick={() => editor.chain().focus().toggleBold().run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('bold') ? 'bg-stone-300' : ''}`}><Bold className="w-4 h-4" /></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleItalic().run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('italic') ? 'bg-stone-300' : ''}`}><Italic className="w-4 h-4" /></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleStrike().run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('strike') ? 'bg-stone-300' : ''}`}><Strikethrough className="w-4 h-4" /></button>
+        <div className="w-px h-5 bg-stone-300 mx-1" />
+        <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('bulletList') ? 'bg-stone-300' : ''}`}><List className="w-4 h-4" /></button>
+        <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('orderedList') ? 'bg-stone-300' : ''}`}><ListOrdered className="w-4 h-4" /></button>
+      </div>
+      <EditorContent editor={editor} className="p-3 prose prose-sm max-w-none min-h-[120px] max-h-[400px] overflow-y-auto outline-none focus:outline-none" />
+    </div>
+  )
+}
+
 
 interface SectionEditorProps {
   existing: CafePageSection | null;
@@ -76,8 +106,8 @@ export function SectionEditor({ existing, onDone }: SectionEditorProps) {
       </div>
 
       <div>
-        <label htmlFor="section-text" className="block text-sm font-medium">Text</label>
-        <textarea id="section-text" value={contentText} onChange={(e) => setContentText(e.target.value)} rows={3} className="mt-1 w-full rounded border px-3 py-2 text-sm" />
+        <label className="block text-sm font-medium">Content Text</label>
+        <RichTextEditor content={contentText} onChange={setContentText} />
       </div>
 
       <div>
