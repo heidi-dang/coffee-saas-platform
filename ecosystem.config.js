@@ -5,7 +5,7 @@ module.exports = {
       script: "node_modules/.bin/next",
       args: "start",
       env: {
-        PORT: "3000",
+        PORT: "3100",
         NODE_ENV: "production",
       },
       instances: 1,

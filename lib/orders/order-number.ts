@@ -6,8 +6,7 @@ export async function getNextOrderNumber(
   tx: TransactionClient,
   cafeId: string
 ): Promise<number> {
-  const key = BigInt(hashCode(cafeId));
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${key})`;
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${cafeId}))`;
 
   const latestOrder = await tx.order.findFirst({
     where: { cafeId },
@@ -15,14 +14,4 @@ export async function getNextOrderNumber(
     select: { orderNumber: true },
   });
   return (latestOrder?.orderNumber ?? 0) + 1;
-}
-
-function hashCode(str: string): number {
-  let hash = 0;
-  for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash |= 0;
-  }
-  return hash;
 }
