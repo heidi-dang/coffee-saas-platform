@@ -74,6 +74,7 @@ model Cafe {
   settings  CafeSettings?
   theme     CafeTheme?
   sections  CafePageSection[]
+  loyaltyProfiles LoyaltyProfile[]
 }
 
 model CafeSettings {
@@ -248,4 +249,18 @@ model CafePageSection {
   @@index([cafeId, publishedAt])
   @@index([cafeId, publishedDeletedAt])
   @@index([cafeId, sortOrder])
+}
+
+model LoyaltyProfile {
+  id          String   @id @default(cuid())
+  cafeId      String
+  cafe        Cafe     @relation(fields: [cafeId], references: [id])
+  phone       String
+  name        String?
+  stampsCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([cafeId, phone])
+  @@index([cafeId, phone])
 }

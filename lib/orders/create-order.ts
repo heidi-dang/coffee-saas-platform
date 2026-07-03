@@ -50,7 +50,10 @@ export async function createOrder(
   const menuItemIds = input.items.map((i) => i.menuItemId);
   const menuItems = await db.menuItem.findMany({
     where: { id: { in: menuItemIds }, cafeId: cafe.id },
-    include: { options: { include: { values: true } } },
+    include: {
+      options: { include: { values: true } },
+      category: true,
+    },
   });
 
   const menuItemMap = new Map(menuItems.map((m) => [m.id, m]));
@@ -93,6 +96,60 @@ export async function createOrder(
             data: {
               stockQuantity: Math.max(0, newStock),
               isAvailable: newStock > 0,
+            },
+          });
+        }
+      }
+
+      // Loyalty stamp accrual for beverages
+      if (input.customerPhone) {
+        const beverageItemIds = Array.from(menuItemMap.values())
+          .filter((item: any) => {
+            const categoryName = item.category?.name?.toLowerCase() || "";
+            const itemName = item.name.toLowerCase();
+            return (
+              categoryName.includes("coffee") ||
+              categoryName.includes("beverage") ||
+              categoryName.includes("drink") ||
+              categoryName.includes("tea") ||
+              categoryName.includes("latte") ||
+              categoryName.includes("espresso") ||
+              categoryName.includes("brew") ||
+              itemName.includes("coffee") ||
+              itemName.includes("tea") ||
+              itemName.includes("latte") ||
+              itemName.includes("cappuccino") ||
+              itemName.includes("flat white") ||
+              itemName.includes("espresso")
+            );
+          })
+          .map((item) => item.id);
+
+        let beverageCount = 0;
+        for (const itemInput of input.items) {
+          if (beverageItemIds.includes(itemInput.menuItemId)) {
+            beverageCount += itemInput.quantity;
+          }
+        }
+
+        if (beverageCount > 0) {
+          const formattedPhone = input.customerPhone.trim();
+          await tx.loyaltyProfile.upsert({
+            where: {
+              cafeId_phone: {
+                cafeId: cafe.id,
+                phone: formattedPhone,
+              },
+            },
+            update: {
+              stampsCount: { increment: beverageCount },
+              name: input.customerName || undefined,
+            },
+            create: {
+              cafeId: cafe.id,
+              phone: formattedPhone,
+              name: input.customerName || null,
+              stampsCount: beverageCount,
             },
           });
         }
