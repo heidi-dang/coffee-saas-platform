@@ -74,6 +74,7 @@ model Cafe {
   settings  CafeSettings?
   theme     CafeTheme?
   sections  CafePageSection[]
+  loyaltyProfiles LoyaltyProfile[]
 }
 
 model CafeSettings {
@@ -112,10 +113,12 @@ model MenuItem {
   imageUrl    String?
   priceCents  Int
   isAvailable Boolean          @default(true)
+  stockQuantity Int?
   sortOrder   Int              @default(0)
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   options     MenuItemOption[]
+  dependencyRulesJson Json?
 
   @@index([cafeId, categoryId])
   @@index([cafeId, isAvailable])
@@ -178,6 +181,7 @@ model Order {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
   items           OrderItem[]
+  feedback        OrderFeedback?
 
   @@unique([cafeId, orderNumber])
   @@index([cafeId, status])
@@ -249,4 +253,27 @@ model CafePageSection {
   @@index([cafeId, publishedAt])
   @@index([cafeId, publishedDeletedAt])
   @@index([cafeId, sortOrder])
+}
+
+model LoyaltyProfile {
+  id          String   @id @default(cuid())
+  cafeId      String
+  cafe        Cafe     @relation(fields: [cafeId], references: [id])
+  phone       String
+  name        String?
+  stampsCount Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([cafeId, phone])
+  @@index([cafeId, phone])
+}
+
+model OrderFeedback {
+  id         String   @id @default(cuid())
+  orderId    String   @unique
+  order      Order    @relation(fields: [orderId], references: [id])
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
 }

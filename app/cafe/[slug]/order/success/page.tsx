@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { FeedbackForm } from "@/components/feedback/feedback-form";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -21,7 +22,7 @@ export default async function SuccessPage({
 
   const order = await db.order.findUnique({
     where: { id: orderId, cafeId: cafe.id },
-    include: { table: true },
+    include: { table: true, feedback: true },
   });
 
   if (!order) notFound();
@@ -31,12 +32,15 @@ export default async function SuccessPage({
   const isPaid = order.paymentStatus === "PAID";
   const isPayAtCounter = order.paymentStatus === "UNPAID";
 
+  const alreadyReviewed = !!order.feedback;
+  const isCompleted = order.status === "COMPLETED";
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-16 text-center">
       <div className="mb-8">
-        <div className="w-16 h-16 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
           <svg
-            className="w-8 h-8 text-green-600 dark:text-green-300"
+            className="w-8 h-8 text-green-600"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -117,6 +121,11 @@ export default async function SuccessPage({
           </span>
         </div>
       </div>
+
+      {/* Feedback form — shown for completed orders that haven't been reviewed yet */}
+      {isCompleted && !alreadyReviewed && (
+        <FeedbackForm orderId={order.id} cafeSlug={slug} />
+      )}
 
       <div className="mt-8">
         <Link

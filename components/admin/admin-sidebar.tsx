@@ -10,6 +10,9 @@ import {
   Settings,
   Palette,
   LogOut,
+  Users,
+  BarChart2,
+  Star,
 } from "lucide-react";
 import { canManageMenu, canManageTables, canManageSettings, canManageDesignStudio } from "@/lib/permissions";
 
@@ -27,6 +30,9 @@ export function AdminSidebar({ cafeName, userName, userRole }: AdminSidebarProps
   const navItems = [
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
+    { href: "/admin/customers", label: "Customers", icon: Users },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart2 },
+    { href: "/admin/feedback", label: "Feedback", icon: Star },
     ...(canManageMenu(user)
       ? [{ href: "/admin/menu", label: "Menu", icon: Menu }]
       : []),

@@ -15,6 +15,8 @@ export const orderItemSchema = z.object({
 export const createOrderSchema = z.object({
   cafeSlug: z.string().min(1).max(100).regex(/^[a-z0-9-]+$/, "Slug must be lowercase alphanumeric with dashes"),
   tableToken: z.string().min(1).max(200).optional(),
+  tableTimestamp: z.number().optional(),
+  tableSignature: z.string().optional(),
   type: z.enum(["DINE_IN", "TAKEAWAY", "PICKUP"]),
   customerName: z.string().max(100).optional(),
   customerPhone: z.string().max(30).optional(),

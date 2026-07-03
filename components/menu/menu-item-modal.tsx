@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Minus, Plus, X, AlertCircle } from "lucide-react";
@@ -27,6 +27,8 @@ interface MenuItem {
   name: string;
   description: string | null;
   priceCents: number;
+  stockQuantity?: number | null;
+  dependencyRulesJson?: any;
   options: MenuOption[];
 }
 
@@ -54,6 +56,67 @@ export function MenuItemModal({ item, onClose, onAdd }: MenuItemModalProps) {
   const [notes, setNotes] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [error, setError] = useState<string | null>(null);
+
+  // Compute disabled values based on dependency rules
+  const disabledValues = useMemo(() => {
+    const disabled = new Set<string>();
+    if (!item.dependencyRulesJson) return disabled;
+
+    let rules: any[] = [];
+    try {
+      rules = typeof item.dependencyRulesJson === "string"
+        ? JSON.parse(item.dependencyRulesJson)
+        : item.dependencyRulesJson;
+    } catch {
+      return disabled;
+    }
+
+    if (!Array.isArray(rules)) return disabled;
+
+    const selectedInputs: { optionId: string; valueId: string }[] = [];
+    for (const [optId, valIds] of Object.entries(selected)) {
+      for (const valId of valIds) {
+        selectedInputs.push({ optionId: optId, valueId: valId });
+      }
+    }
+
+    for (const rule of rules) {
+      const isTriggered = selectedInputs.some(
+        (o) => o.optionId === rule.triggerOptionId && o.valueId === rule.triggerValueId
+      );
+      if (isTriggered && rule.action === "DISABLE") {
+        if (rule.targetValueId) {
+          disabled.add(`${rule.targetOptionId}:${rule.targetValueId}`);
+        } else {
+          const targetOpt = item.options.find((o) => o.id === rule.targetOptionId);
+          if (targetOpt) {
+            for (const v of targetOpt.values) {
+              disabled.add(`${rule.targetOptionId}:${v.id}`);
+            }
+          }
+        }
+      }
+    }
+    return disabled;
+  }, [selected, item.options, item.dependencyRulesJson]);
+
+  // Clean up any selections that became invalid because of new triggers
+  useEffect(() => {
+    let changed = false;
+    const nextSelected = { ...selected };
+
+    for (const [optId, valIds] of Object.entries(selected)) {
+      const filtered = valIds.filter((vId) => !disabledValues.has(`${optId}:${vId}`));
+      if (filtered.length !== valIds.length) {
+        nextSelected[optId] = filtered;
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      setSelected(nextSelected);
+    }
+  }, [disabledValues]);
 
   const optionsPrice = useMemo(() => {
     let total = 0;
@@ -84,6 +147,8 @@ export function MenuItemModal({ item, onClose, onAdd }: MenuItemModalProps) {
   }, [selected, item.options]);
 
   function toggleValue(optionId: string, valueId: string, type: "SINGLE" | "MULTIPLE") {
+    if (disabledValues.has(`${optionId}:${valueId}`)) return;
+
     setSelected((prev) => {
       const current = prev[optionId] || [];
       if (type === "SINGLE") {
@@ -197,14 +262,18 @@ export function MenuItemModal({ item, onClose, onAdd }: MenuItemModalProps) {
                 <div className="grid gap-2">
                   {option.values.map((value) => {
                     const isSelected = (selected[option.id] || []).includes(value.id);
+                    const isDisabled = disabledValues.has(`${option.id}:${value.id}`);
                     return (
                       <button
                         key={value.id}
                         type="button"
+                        disabled={isDisabled}
                         onClick={() => toggleValue(option.id, value.id, option.type)}
                         className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
                           isSelected
                             ? "border-amber-700 bg-amber-50/40 text-amber-900 font-semibold"
+                            : isDisabled
+                            ? "border-stone-150 bg-stone-50/30 text-stone-300 cursor-not-allowed opacity-40"
                             : "border-stone-200 hover:border-stone-300 text-stone-700"
                         }`}
                       >
@@ -249,7 +318,13 @@ export function MenuItemModal({ item, onClose, onAdd }: MenuItemModalProps) {
               <span className="w-8 text-center font-bold text-stone-950 text-sm">{quantity}</span>
               <button
                 type="button"
-                onClick={() => setQuantity(quantity + 1)}
+                onClick={() => {
+                  if (item.stockQuantity !== undefined && item.stockQuantity !== null) {
+                    setQuantity(Math.min(item.stockQuantity, quantity + 1));
+                  } else {
+                    setQuantity(quantity + 1);
+                  }
+                }}
                 className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-600 hover:text-stone-900 active:scale-90 transition-all"
                 aria-label="Increase quantity"
               >

@@ -17,6 +17,7 @@ export interface Order {
   status: string;
   paymentStatus: string;
   customerName: string | null;
+  customerPhone: string | null;
   customerNote: string | null;
   totalCents: number;
   createdAt: string;

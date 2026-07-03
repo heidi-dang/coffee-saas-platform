@@ -35,6 +35,17 @@ export async function PATCH(
     const updated = await db.order.update({
       where: { id },
       data: { status: newStatus },
+      include: {
+        items: true,
+        table: { select: { tableNumber: true } },
+      },
+    });
+
+    const { publishOrderEvent } = await import("@/lib/orders/order-events");
+    publishOrderEvent({
+      cafeId: user.cafeId,
+      type: "UPDATED",
+      order: updated,
     });
 
     return ok({ order: updated });
