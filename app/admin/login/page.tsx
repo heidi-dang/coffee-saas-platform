@@ -68,7 +68,7 @@ export default function LoginPage() {
 
           <div className="p-4 rounded-xl border border-neutral-800 bg-neutral-950/40 backdrop-blur-sm">
             <p className="text-xs text-neutral-400 italic">
-              "We replaced our physical print menus with CoffeeQR. Table wait times dropped by 25%, and our staff can focus entirely on craft brewing."
+              &quot;We replaced our physical print menus with CoffeeQR. Table wait times dropped by 25%, and our staff can focus entirely on craft brewing.&quot;
             </p>
             <div className="flex items-center gap-2 mt-3">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
