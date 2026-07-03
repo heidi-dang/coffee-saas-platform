@@ -51,6 +51,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Category not found" }, { status: 404 });
   }
 
-  await db.menuCategory.delete({ where: { id } });
+  // Soft delete
+  await db.menuCategory.update({
+    where: { id },
+    data: { isActive: false },
+  });
   return NextResponse.json({ success: true });
 }

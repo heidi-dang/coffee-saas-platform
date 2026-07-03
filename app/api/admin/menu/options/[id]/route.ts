@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { canManageMenu } from "@/lib/permissions";
 import { db } from "@/lib/db";
+import { updateOptionSchema } from "@/lib/validations";
 
 export async function PATCH(
   request: Request,
@@ -15,13 +16,10 @@ export async function PATCH(
   const { id } = await params;
   const body = await request.json();
 
-  if (
-    body.maxSelect !== undefined &&
-    body.minSelect !== undefined &&
-    body.maxSelect < body.minSelect
-  ) {
+  const parsed = updateOptionSchema.safeParse(body);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: "Max select cannot be lower than min select" },
+      { error: "Invalid option data", issues: parsed.error.issues },
       { status: 400 }
     );
   }
@@ -33,31 +31,33 @@ export async function PATCH(
     return NextResponse.json({ error: "Option not found" }, { status: 404 });
   }
 
-  const updateData: any = {};
-  if (body.name !== undefined) updateData.name = body.name;
-  if (body.type !== undefined) updateData.type = body.type;
-  if (body.required !== undefined) updateData.required = body.required;
-  if (body.minSelect !== undefined) updateData.minSelect = body.minSelect;
-  if (body.maxSelect !== undefined) updateData.maxSelect = body.maxSelect;
+  const data = parsed.data;
+  const updateData: Record<string, unknown> = {};
+  if (data.name !== undefined) updateData.name = data.name;
+  if (data.type !== undefined) updateData.type = data.type;
+  if (data.required !== undefined) updateData.required = data.required;
+  if (data.minSelect !== undefined) updateData.minSelect = data.minSelect;
+  if (data.maxSelect !== undefined) updateData.maxSelect = data.maxSelect;
 
-  const updated = await db.menuItemOption.update({
+  await db.menuItemOption.update({
     where: { id },
     data: updateData,
-    include: { values: true },
   });
 
-  if (body.values) {
-    await db.menuItemOptionValue.deleteMany({ where: { optionId: id } });
-    for (const v of body.values) {
-      await db.menuItemOptionValue.create({
-        data: {
-          optionId: id,
-          name: v.name,
-          priceCents: v.priceCents ?? 0,
-          sortOrder: v.sortOrder ?? 0,
-        },
-      });
-    }
+  if (data.values) {
+    await db.$transaction(async (tx) => {
+      await tx.menuItemOptionValue.deleteMany({ where: { optionId: id } });
+      for (const v of data.values!) {
+        await tx.menuItemOptionValue.create({
+          data: {
+            optionId: id,
+            name: v.name,
+            priceCents: v.priceCents ?? 0,
+            sortOrder: v.sortOrder ?? 0,
+          },
+        });
+      }
+    });
   }
 
   const refreshed = await db.menuItemOption.findUnique({
@@ -85,6 +85,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Option not found" }, { status: 404 });
   }
 
-  await db.menuItemOption.delete({ where: { id } });
+  // Delete values then option in transaction
+  await db.$transaction(async (tx) => {
+    await tx.menuItemOptionValue.deleteMany({ where: { optionId: id } });
+    await tx.menuItemOption.delete({ where: { id } });
+  });
   return NextResponse.json({ success: true });
 }

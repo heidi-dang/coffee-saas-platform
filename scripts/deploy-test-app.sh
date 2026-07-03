@@ -77,7 +77,7 @@ pnpm build
 
 # ── Database ────────────────────────────────────────────────────────
 echo "==> Running database migration..."
-pnpm db:migrate 2>&1 | tail -5
+pnpm db:deploy 2>&1 | tail -5
 
 if [ "$SEED_DB" = true ]; then
   echo "==> Seeding test database..."

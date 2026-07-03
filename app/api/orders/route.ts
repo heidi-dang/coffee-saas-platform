@@ -17,13 +17,36 @@ export async function POST(request: Request) {
     const { cafeSlug, tableToken, type, customerName, customerPhone, customerNote, items } =
       parsed.data;
 
-    const cafe = await db.cafe.findUnique({ where: { slug: cafeSlug } });
+    const cafe = await db.cafe.findUnique({
+      where: { slug: cafeSlug },
+      include: { settings: true },
+    });
     if (!cafe) {
       return NextResponse.json({ error: "Cafe not found" }, { status: 404 });
     }
     if (!cafe.isActive) {
       return NextResponse.json(
         { error: "Ordering unavailable" },
+        { status: 400 }
+      );
+    }
+
+    const settings = cafe.settings;
+    if (type === "DINE_IN" && settings && !settings.acceptDineIn) {
+      return NextResponse.json(
+        { error: "Dine-in ordering is currently disabled" },
+        { status: 400 }
+      );
+    }
+    if (type === "TAKEAWAY" && settings && !settings.acceptTakeaway) {
+      return NextResponse.json(
+        { error: "Takeaway ordering is currently disabled" },
+        { status: 400 }
+      );
+    }
+    if (type === "PICKUP" && settings && !settings.acceptPickup) {
+      return NextResponse.json(
+        { error: "Pickup ordering is currently disabled" },
         { status: 400 }
       );
     }

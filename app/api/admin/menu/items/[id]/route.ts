@@ -29,7 +29,20 @@ export async function PATCH(
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
 
-  const updateData: any = {};
+  // Validate categoryId belongs to the same cafe
+  if (body.categoryId !== undefined) {
+    const category = await db.menuCategory.findFirst({
+      where: { id: body.categoryId, cafeId: user.cafeId },
+    });
+    if (!category) {
+      return NextResponse.json(
+        { error: "Category not found in this cafe" },
+        { status: 400 }
+      );
+    }
+  }
+
+  const updateData: Record<string, unknown> = {};
   if (body.name !== undefined) updateData.name = body.name;
   if (body.description !== undefined) updateData.description = body.description;
   if (body.priceCents !== undefined) updateData.priceCents = body.priceCents;
@@ -60,6 +73,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Item not found" }, { status: 404 });
   }
 
-  await db.menuItem.delete({ where: { id } });
+  // Soft delete
+  await db.menuItem.update({ where: { id }, data: { isAvailable: false } });
   return NextResponse.json({ success: true });
 }

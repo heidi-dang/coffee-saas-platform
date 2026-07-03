@@ -13,8 +13,8 @@ interface CafeTable {
   createdAt: string;
 }
 
-function qrUrl(orderUrl: string): string {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(orderUrl)}`;
+function qrUrl(orderUrl: string, size = 200): string {
+  return `/api/qr?data=${encodeURIComponent(orderUrl)}&size=${size}`;
 }
 
 export default function AdminTablesPage() {
@@ -80,8 +80,7 @@ export default function AdminTablesPage() {
     const canvas = document.createElement("canvas");
     const ctx = canvas.getContext("2d");
     const img = new Image();
-    img.crossOrigin = "anonymous";
-    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}`;
+    img.src = qrUrl(url, 300);
     img.onload = () => {
       canvas.width = 300;
       canvas.height = 300;
@@ -101,7 +100,7 @@ export default function AdminTablesPage() {
         <head><title>QR - ${label}</title></head>
         <body style="text-align:center;padding:20px;">
           <h2>${label}</h2>
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(url)}" />
+          <img src="${qrUrl(url, 300)}" />
           <p>${url}</p>
           <script>window.print();</script>
         </body>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { canManageMenu } from "@/lib/permissions";
 import { db } from "@/lib/db";
+import { createOptionSchema } from "@/lib/validations";
 
 export async function POST(request: Request) {
   const user = await getSession();
@@ -9,22 +10,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const body = await request.json();
+
+  const parsed = createOptionSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: "Invalid option data", issues: parsed.error.issues },
+      { status: 400 }
+    );
+  }
+
   const { menuItemId, name, type, required, minSelect, maxSelect, values } =
-    await request.json();
-
-  if (!menuItemId || !name) {
-    return NextResponse.json(
-      { error: "Menu item ID and option name are required" },
-      { status: 400 }
-    );
-  }
-
-  if (maxSelect !== undefined && minSelect !== undefined && maxSelect < minSelect) {
-    return NextResponse.json(
-      { error: "Max select cannot be lower than min select" },
-      { status: 400 }
-    );
-  }
+    parsed.data;
 
   const item = await db.menuItem.findFirst({
     where: { id: menuItemId, cafeId: user.cafeId },
@@ -37,11 +34,11 @@ export async function POST(request: Request) {
     data: {
       menuItemId,
       name,
-      type: type || "SINGLE",
-      required: required ?? false,
-      minSelect: minSelect ?? 0,
-      maxSelect: maxSelect ?? 1,
-      values: values
+      type,
+      required,
+      minSelect,
+      maxSelect,
+      values: values && values.length > 0
         ? { create: values }
         : undefined,
     },

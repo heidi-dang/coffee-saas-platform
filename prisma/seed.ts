@@ -62,6 +62,19 @@ async function seed() {
     },
   });
 
+  // Clean up existing dependent data for idempotency
+  await db.orderItem.deleteMany({ where: { order: { cafeId: cafe.id } } });
+  await db.order.deleteMany({ where: { cafeId: cafe.id } });
+  await db.menuItemOptionValue.deleteMany({
+    where: { option: { menuItem: { cafeId: cafe.id } } },
+  });
+  await db.menuItemOption.deleteMany({
+    where: { menuItem: { cafeId: cafe.id } },
+  });
+  await db.menuItem.deleteMany({ where: { cafeId: cafe.id } });
+  await db.menuCategory.deleteMany({ where: { cafeId: cafe.id } });
+  await db.cafeTable.deleteMany({ where: { cafeId: cafe.id } });
+
   const coffeeCat = await db.menuCategory.create({
     data: { cafeId: cafe.id, name: "Coffee", sortOrder: 1 },
   });
