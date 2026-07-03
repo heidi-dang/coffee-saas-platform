@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  PLATFORM_ADMIN
+  CAFE_OWNER
+  CAFE_MANAGER
+  CAFE_STAFF
+}
+
+enum OptionType {
+  SINGLE
+  MULTIPLE
+}
+
+enum OrderType {
+  DINE_IN
+  TAKEAWAY
+  PICKUP
+}
+
+enum OrderStatus {
+  NEW
+  ACCEPTED
+  PREPARING
+  READY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String?
+  passwordHash String?
+  role         UserRole  @default(CAFE_STAFF)
+  cafeId       String?
+  cafe         Cafe?     @relation(fields: [cafeId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+model Cafe {
+  id        String          @id @default(cuid())
+  name      String
+  slug      String          @unique
+  email     String?
+  phone     String?
+  address   String?
+  logoUrl   String?
+  currency  String          @default("AUD")
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+  users     User[]
+  categories MenuCategory[]
+  items     MenuItem[]
+  tables    CafeTable[]
+  orders    Order[]
+  settings  CafeSettings?
+}
+
+model CafeSettings {
+  id                  String   @id @default(cuid())
+  cafeId              String   @unique
+  cafe                Cafe     @relation(fields: [cafeId], references: [id])
+  acceptDineIn        Boolean  @default(true)
+  acceptTakeaway      Boolean  @default(true)
+  acceptPickup        Boolean  @default(true)
+  acceptPayAtCounter  Boolean  @default(true)
+  acceptOnlinePayment Boolean  @default(false)
+  openingHoursJson    Json?
+}
+
+model MenuCategory {
+  id        String     @id @default(cuid())
+  cafeId    String
+  cafe      Cafe       @relation(fields: [cafeId], references: [id])
+  name      String
+  sortOrder Int        @default(0)
+  isActive  Boolean    @default(true)
+  items     MenuItem[]
+}
+
+model MenuItem {
+  id          String           @id @default(cuid())
+  cafeId      String
+  cafe        Cafe             @relation(fields: [cafeId], references: [id])
+  categoryId  String
+  category    MenuCategory     @relation(fields: [categoryId], references: [id])
+  name        String
+  description String?
+  imageUrl    String?
+  priceCents  Int
+  isAvailable Boolean          @default(true)
+  sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  options     MenuItemOption[]
+}
+
+model MenuItemOption {
+  id        String                @id @default(cuid())
+  menuItemId String
+  menuItem  MenuItem              @relation(fields: [menuItemId], references: [id])
+  name      String
+  type      OptionType
+  required  Boolean               @default(false)
+  minSelect Int                   @default(0)
+  maxSelect Int                   @default(1)
+  values    MenuItemOptionValue[]
+}
+
+model MenuItemOptionValue {
+  id        String         @id @default(cuid())
+  optionId  String
+  option    MenuItemOption @relation(fields: [optionId], references: [id])
+  name      String
+  priceCents Int           @default(0)
+  sortOrder  Int           @default(0)
+}
+
+model CafeTable {
+  id          String   @id @default(cuid())
+  cafeId      String
+  cafe        Cafe     @relation(fields: [cafeId], references: [id])
+  tableNumber String
+  qrToken     String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  orders      Order[]
+}
+
+model Order {
+  id              String       @id @default(cuid())
+  cafeId          String
+  cafe            Cafe         @relation(fields: [cafeId], references: [id])
+  orderNumber     Int
+  type            OrderType
+  status          OrderStatus  @default(NEW)
+  paymentStatus   PaymentStatus @default(UNPAID)
+  tableId         String?
+  table           CafeTable?   @relation(fields: [tableId], references: [id])
+  customerName    String?
+  customerPhone   String?
+  customerNote    String?
+  subtotalCents   Int
+  totalCents      Int
+  stripeSessionId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  items           OrderItem[]
+}
+
+model OrderItem {
+  id              String   @id @default(cuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id])
+  menuItemId      String
+  itemNameSnapshot String
+  quantity        Int
+  unitPriceCents  Int
+  totalCents      Int
+  optionsSnapshot Json?
+  notes           String?
+}

@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:latest
+    container_name: coffee_saas_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: coffee_saas_platform
+      POSTGRES_USER: coffee_user
+      POSTGRES_PASSWORD: coffee_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
