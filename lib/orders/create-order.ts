@@ -5,6 +5,7 @@ import { resolveTable } from "./resolve-table";
 import { getNextOrderNumber } from "./order-number";
 import { findDuplicateOptionSelections } from "./validate-duplicates";
 import type { CreateOrderInput, OrderItemData } from "./types";
+import type { PaymentMethod } from "./create-order-schema";
 import type { Result } from "@/lib/result";
 import { success, failure } from "@/lib/result";
 
@@ -14,10 +15,16 @@ interface CreateOrderSuccess {
   status: string;
   paymentStatus: string;
   totalCents: number;
+  items: { menuItemId: string; itemNameSnapshot: string; quantity: number; unitPriceCents: number; optionsSnapshot: any; notes: string | null }[];
+}
+
+export interface CreateOrderOptions {
+  paymentMethod?: PaymentMethod;
 }
 
 export async function createOrder(
-  input: CreateOrderInput
+  input: CreateOrderInput,
+  options: CreateOrderOptions = {}
 ): Promise<Result<CreateOrderSuccess>> {
   const cafe = await db.cafe.findUnique({
     where: { slug: input.cafeSlug },
@@ -35,6 +42,14 @@ export async function createOrder(
   }
   if (input.type === "PICKUP" && settings && !settings.acceptPickup) {
     return failure("Pickup ordering is currently disabled");
+  }
+
+  const paymentMethod: PaymentMethod = options.paymentMethod ?? "PAY_AT_COUNTER";
+  if (paymentMethod === "PAY_AT_COUNTER" && settings && !settings.acceptPayAtCounter) {
+    return failure("Pay at counter is currently disabled");
+  }
+  if (paymentMethod === "ONLINE" && settings && !settings.acceptOnlinePayment) {
+    return failure("Online payment is currently disabled");
   }
 
   const tableResult = await resolveTable(cafe.id, input.tableToken, input.type);
@@ -70,6 +85,8 @@ export async function createOrder(
     orderItemsData.push(priced.data);
   }
 
+  const paymentStatus = paymentMethod === "ONLINE" ? "PENDING" : "UNPAID";
+
   try {
     const order = await db.$transaction(async (tx) => {
       const orderNumber = await getNextOrderNumber(tx, cafe.id);
@@ -80,7 +97,7 @@ export async function createOrder(
           orderNumber,
           type: input.type,
           status: "NEW",
-          paymentStatus: "UNPAID",
+          paymentStatus,
           tableId,
           customerName: input.customerName || null,
           customerPhone: input.customerPhone || null,
@@ -98,6 +115,14 @@ export async function createOrder(
       status: order.status,
       paymentStatus: order.paymentStatus,
       totalCents: order.totalCents,
+      items: orderItemsData.map((i) => ({
+        menuItemId: i.menuItemId,
+        itemNameSnapshot: i.itemNameSnapshot,
+        quantity: i.quantity,
+        unitPriceCents: i.unitPriceCents,
+        optionsSnapshot: i.optionsSnapshot,
+        notes: i.notes,
+      })),
     });
   } catch (err) {
     console.error("Failed to create order:", err);

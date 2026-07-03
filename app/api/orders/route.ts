@@ -1,17 +1,18 @@
 import { createOrder } from "@/lib/orders/create-order";
-import { createOrderSchema } from "@/lib/orders/create-order-schema";
+import { createOrderWithPaymentSchema } from "@/lib/orders/create-order-schema";
 import { badRequest, serverError, ok } from "@/lib/api/response";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const parsed = createOrderSchema.safeParse(body);
+    const parsed = createOrderWithPaymentSchema.safeParse(body);
 
     if (!parsed.success) {
       return badRequest("Invalid request", parsed.error.issues);
     }
 
-    const result = await createOrder(parsed.data);
+    const { paymentMethod, ...orderInput } = parsed.data;
+    const result = await createOrder(orderInput, { paymentMethod });
 
     if (!result.ok) {
       return badRequest(result.error);
