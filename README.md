@@ -33,6 +33,154 @@ Built for cafe owners, staff, and their customers.
 - Table and QR code management with PNG download
 - Basic order status updates
 
+### Phase 1.5 — Admin Website Builder / Design Studio
+
+The platform will include a controlled WYSIWYG-style Website Builder inside the admin area so café owners can redesign their public café website without needing a developer.
+
+This feature should be added after the core ordering flow is stable.
+
+#### Goal
+
+Allow café owners to edit their public café landing page from the admin dashboard. They should be able to change:
+
+- Logo
+- Hero image
+- Hero title
+- Hero subtitle
+- Button text
+- Button link
+- Brand colour
+- Accent colour
+- Background colour
+- Font preset
+- About section
+- Gallery images
+- Announcement banner
+- Opening hours text
+- Footer text
+- Social links
+- Menu item photos
+
+#### Admin Routes
+
+Planned routes:
+
+```
+/admin/website-builder
+/admin/developer/design-studio
+```
+
+Both routes can load the same Design Studio page.
+
+#### Editing Scope
+
+The Website Builder should only edit the public café landing page first:
+
+```
+/cafe/[slug]
+```
+
+It must not allow customers to redesign these pages in the MVP:
+
+```
+/admin/*
+/cafe/[slug]/order/*
+/cafe/[slug]/order/checkout
+/cafe/[slug]/order/success
+payment pages
+API routes
+```
+
+Ordering, checkout, payment, and admin pages must remain stable.
+
+#### Recommended Build Approach
+
+Use a controlled block editor first, not a full unrestricted code editor.
+
+MVP Design Studio should support:
+
+- Template preset selection
+- Theme colour editing
+- Logo upload
+- Hero image upload
+- Hero text editing
+- Section show/hide
+- Section ordering
+- Gallery image management
+- Save draft
+- Preview
+- Publish
+- Reset to default
+
+Later, advanced WYSIWYG support can be added with:
+
+- Tiptap for rich text sections
+- GrapesJS for advanced drag-and-drop campaign pages
+
+#### Planned Database Models
+
+The feature will add:
+
+- `CafeTheme`
+- `CafePageSection`
+- `CafeMedia`
+
+These models will store published design settings, draft design settings, page sections, and uploaded media.
+
+#### Publish Flow
+
+Changes must follow this flow:
+
+```
+Draft → Preview → Publish
+```
+
+Public pages should use the published design only. Draft changes must not affect the live café website until the owner clicks Publish.
+
+#### Access Rules
+
+MVP access:
+
+| Role | Can edit website design |
+|------|------------------------|
+| PLATFORM_ADMIN | Yes — all cafés |
+| CAFE_OWNER | Yes — own café |
+| CAFE_MANAGER | Yes — own café |
+| CAFE_STAFF | No |
+
+#### Recommended Timeline
+
+The Design Studio should not block the core QR ordering product.
+
+Recommended order:
+
+| Week | Focus |
+|------|-------|
+| 2 | Customer ordering |
+| 3 | Admin orders, menu, tables, QR generation |
+| 4 | Website Builder MVP |
+| 5 | Stripe payment |
+| 6 | SaaS billing |
+
+#### Done Definition
+
+The Design Studio feature is done only when:
+
+- Admin website builder page exists
+- Café owner can edit theme
+- Café owner can change photos
+- Café owner can manage page sections
+- Draft save works
+- Preview works
+- Publish works
+- Public café page renders published design
+- Menu item photos can be changed
+- Staff cannot edit website design
+- Ordering flow is not broken
+- Lint passes
+- Typecheck passes
+- Build passes
+
 ### Phase 2 — Online Payment
 - Stripe Checkout Session integration
 - Payment webhook (checkout.session.completed, expired, payment_failed)
