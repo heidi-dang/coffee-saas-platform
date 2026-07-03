@@ -32,6 +32,7 @@ interface MenuItem {
   description: string | null;
   priceCents: number;
   isAvailable: boolean;
+  stockQuantity: number | null;
   options: MenuOption[];
 }
 
@@ -174,6 +175,7 @@ export function OrderClient({
                           description={item.description}
                           priceCents={item.priceCents}
                           isAvailable={item.isAvailable}
+                          stockQuantity={item.stockQuantity}
                           onCustomise={() => setSelectedItem(item)}
                         />
                       ))}

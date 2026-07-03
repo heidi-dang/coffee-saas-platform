@@ -62,6 +62,9 @@ export async function createOrder(
     const menuItem = menuItemMap.get(itemInput.menuItemId);
     if (!menuItem) return failure(`Menu item ${itemInput.menuItemId} not found`);
     if (!menuItem.isAvailable) return failure(`${menuItem.name} is not available`);
+    if (menuItem.stockQuantity !== null && menuItem.stockQuantity < itemInput.quantity) {
+      return failure(`Sorry, ${menuItem.name} has sold out`);
+    }
 
     const dupError = findDuplicateOptionSelections(itemInput.selectedOptions);
     if (dupError) return failure(dupError);
@@ -79,6 +82,21 @@ export async function createOrder(
   try {
     const order = await db.$transaction(async (tx) => {
       const orderNumber = await getNextOrderNumber(tx, cafe.id);
+
+      // Decrement stock for items with tracked inventory
+      for (const itemInput of input.items) {
+        const menuItem = menuItemMap.get(itemInput.menuItemId)!;
+        if (menuItem.stockQuantity !== null) {
+          const newStock = menuItem.stockQuantity - itemInput.quantity;
+          await tx.menuItem.update({
+            where: { id: menuItem.id },
+            data: {
+              stockQuantity: Math.max(0, newStock),
+              isAvailable: newStock > 0,
+            },
+          });
+        }
+      }
 
       return tx.order.create({
         data: {

@@ -27,6 +27,7 @@ interface MenuItem {
   name: string;
   description: string | null;
   priceCents: number;
+  stockQuantity?: number | null;
   options: MenuOption[];
 }
 
@@ -249,7 +250,13 @@ export function MenuItemModal({ item, onClose, onAdd }: MenuItemModalProps) {
               <span className="w-8 text-center font-bold text-stone-950 text-sm">{quantity}</span>
               <button
                 type="button"
-                onClick={() => setQuantity(quantity + 1)}
+                onClick={() => {
+                  if (item.stockQuantity !== undefined && item.stockQuantity !== null) {
+                    setQuantity(Math.min(item.stockQuantity, quantity + 1));
+                  } else {
+                    setQuantity(quantity + 1);
+                  }
+                }}
                 className="p-1.5 rounded-lg bg-white border border-stone-200 text-stone-600 hover:text-stone-900 active:scale-90 transition-all"
                 aria-label="Increase quantity"
               >
