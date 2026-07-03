@@ -31,7 +31,9 @@ export async function POST() {
       ),
     ]);
 
-    return NextResponse.json({ success: true, sectionCount: allSections.length });
+    const cafe = await db.cafe.findUnique({ where: { id: cafeId }, select: { slug: true } });
+
+    return NextResponse.json({ success: true, sectionCount: allSections.length, slug: cafe?.slug });
   } catch (e: any) {
     const status = e.status || 500;
     return NextResponse.json({ error: e.message }, { status });

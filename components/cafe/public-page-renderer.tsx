@@ -30,12 +30,12 @@ export function PublicPageRenderer({ theme, sections }: PublicPageRendererProps)
   return (
     <div style={style} className="min-h-screen">
       {publicTheme.logoUrl && (
-        <div className="flex justify-center py-6">
+        <div className="flex justify-center py-6 px-4">
           <img src={publicTheme.logoUrl} alt="Logo" className="h-16 object-contain" />
         </div>
       )}
       {publicTheme.heroImageUrl && (
-        <img src={publicTheme.heroImageUrl} alt="Hero" className="w-full h-64 object-cover" />
+        <img src={publicTheme.heroImageUrl} alt="Hero" className="w-full h-48 sm:h-64 object-cover" />
       )}
       <div className="mx-auto max-w-4xl space-y-8 py-8 px-4">
         {visibleSections.map((section) => (
@@ -52,6 +52,7 @@ function SectionBlock({ section, accentColor }: { section: CafePageSection; acce
   const imageUrl = content?.imageUrl as string | undefined;
   const buttonLabel = content?.buttonLabel as string | undefined;
   const buttonUrl = content?.buttonUrl as string | undefined;
+  const hasButton = buttonLabel && buttonUrl;
 
   return (
     <div className="rounded-lg border p-6" style={{ borderColor: accentColor }}>
@@ -60,9 +61,9 @@ function SectionBlock({ section, accentColor }: { section: CafePageSection; acce
       {imageUrl && (
         <img src={imageUrl} alt="" className="mt-4 h-48 w-full rounded-lg object-cover" />
       )}
-      {buttonLabel && (
+      {hasButton && (
         <a
-          href={buttonUrl || "#"}
+          href={buttonUrl}
           className="mt-4 inline-block rounded px-6 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
           style={{ backgroundColor: accentColor }}
         >

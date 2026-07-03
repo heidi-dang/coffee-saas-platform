@@ -2,15 +2,29 @@ import { z } from "zod";
 
 const hexColorRegex = /^#[0-9a-fA-F]{3,8}$/;
 
-const hexColor = z.string().regex(hexColorRegex, "Invalid hex color");
+const hexColor = z.string().regex(hexColorRegex, "Invalid hex colour");
+
+const urlOrPath = z
+  .string()
+  .refine(
+    (v) => {
+      try {
+        new URL(v);
+        return true;
+      } catch {
+        return v.startsWith("/");
+      }
+    },
+    { message: "Must be a valid URL (https://...) or internal path (e.g. /order)" }
+  );
 
 export const themeSchema = z.object({
   primaryColor: hexColor,
   accentColor: hexColor,
   backgroundColor: hexColor,
   textColor: hexColor,
-  logoUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
-  heroImageUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
+  logoUrl: urlOrPath.optional().or(z.literal("")).or(z.null()),
+  heroImageUrl: urlOrPath.optional().or(z.literal("")).or(z.null()),
   fontFamily: z.string().max(100).optional(),
 });
 
@@ -26,10 +40,10 @@ export const sectionTypeEnum = z.enum([
 
 export const sectionContentSchema = z.object({
   text: z.string().max(5000).optional().or(z.null()),
-  imageUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
+  imageUrl: urlOrPath.optional().or(z.literal("")).or(z.null()),
   buttonLabel: z.string().max(100).optional().or(z.null()),
-  buttonUrl: z.string().url().optional().or(z.literal("")).or(z.null()),
-  images: z.array(z.string().url()).max(20).optional(),
+  buttonUrl: urlOrPath.optional().or(z.literal("")).or(z.null()),
+  images: z.array(urlOrPath).max(20).optional(),
 });
 
 export const createSectionSchema = z.object({

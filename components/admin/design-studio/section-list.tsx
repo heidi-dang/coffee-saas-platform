@@ -10,13 +10,15 @@ export function SectionList() {
   const [sections, setSections] = useState<CafePageSection[]>([]);
   const [editing, setEditing] = useState<CafePageSection | null | "new">(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const load = useCallback(async () => {
+    setError("");
     try {
       const data = await getSections();
       setSections(data as CafePageSection[]);
     } catch {
-      /* ignore */
+      setError("Could not load sections. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -25,12 +27,29 @@ export function SectionList() {
   useEffect(() => { load(); }, [load]);
 
   const handleHide = async (id: string) => {
-    if (!confirm("Hide this section? It will no longer appear in the editor.")) return;
-    await deleteSection(id);
-    load();
+    if (!confirm("Hide this section from the draft? Customers will still see the published version until you publish.")) return;
+    try {
+      await deleteSection(id);
+      load();
+    } catch {
+      setError("Could not hide section. Please try again.");
+    }
   };
 
-  if (loading) return <div className="p-4 text-gray-500">Loading sections...</div>;
+  if (loading) return <div className="p-4 text-sm text-gray-500">Loading sections...</div>;
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-700">{error}</p>
+          <button onClick={load} className="mt-2 text-sm text-red-600 underline hover:text-red-800">
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const publishedIds = new Set(
     sections.filter((s) => s.publishedAt !== null).map((s) => s.id)
@@ -42,7 +61,7 @@ export function SectionList() {
         <h3 className="text-lg font-semibold">Sections</h3>
         <button
           onClick={() => setEditing("new")}
-          className="rounded bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
+          className="rounded bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700"
         >
           + Add Section
         </button>
@@ -60,7 +79,16 @@ export function SectionList() {
       )}
 
       {sections.length === 0 ? (
-        <p className="text-sm text-gray-500">No sections yet. Add one to get started.</p>
+        <div className="rounded-lg border border-dashed border-gray-300 p-8 text-center">
+          <p className="text-sm text-gray-500">No website sections yet.</p>
+          <p className="mt-1 text-xs text-gray-400">Add a Hero section to start building your café website.</p>
+          <button
+            onClick={() => setEditing("new")}
+            className="mt-4 rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+          >
+            Add Your First Section
+          </button>
+        </div>
       ) : (
         <div className="space-y-2">
           {sections.map((s) => (
