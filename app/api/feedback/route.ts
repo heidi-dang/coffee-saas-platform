@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 
 const feedbackSchema = z.object({
+  cafeSlug: z.string().min(1).max(100),
   orderId: z.string().min(1).max(100),
   rating: z.number().int().min(1).max(5),
   comment: z.string().max(1000).optional(),
@@ -48,30 +49,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid feedback data" }, { status: 400 });
     }
 
-    const { orderId, rating, comment } = parsed.data;
+    const { cafeSlug, orderId, rating, comment } = parsed.data;
 
-    if (!checkAndIncrement(orderBuckets, orderId, RATE_LIMIT_MAX_PER_ORDER)) {
-      return NextResponse.json({ error: "Feedback already submitted" }, { status: 409 });
-    }
-
-    const order = await db.order.findUnique({
-      where: { id: orderId },
-      select: { id: true, status: true, feedback: true },
+    const order = await db.order.findFirst({
+      where: {
+        id: orderId,
+        cafe: {
+          slug: cafeSlug,
+          isActive: true,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        feedback: true,
+      },
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Invalid order or feedback unavailable" },
+        { status: 404 }
+      );
     }
 
     if (order.status !== "COMPLETED") {
       return NextResponse.json(
-        { error: "Feedback can only be submitted for completed orders" },
+        { error: "Invalid order or feedback unavailable" },
         { status: 400 }
       );
     }
 
     if (order.feedback) {
-      return NextResponse.json({ error: "Feedback already submitted" }, { status: 409 });
+      return NextResponse.json(
+        { error: "Invalid order or feedback unavailable" },
+        { status: 409 }
+      );
+    }
+
+    if (!checkAndIncrement(orderBuckets, orderId, RATE_LIMIT_MAX_PER_ORDER)) {
+      return NextResponse.json(
+        { error: "Invalid order or feedback unavailable" },
+        { status: 429 }
+      );
     }
 
     const feedback = await db.orderFeedback.create({
