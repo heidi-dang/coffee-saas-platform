@@ -26,7 +26,7 @@ export function SectionEditor({ existing, onDone }: SectionEditorProps) {
   const [imageUrl, setImageUrl] = useState((existing?.draftContent as any)?.imageUrl || "");
   const [buttonLabel, setButtonLabel] = useState((existing?.draftContent as any)?.buttonLabel || "");
   const [buttonUrl, setButtonUrl] = useState((existing?.draftContent as any)?.buttonUrl || "");
-  const [isVisible, setIsVisible] = useState(existing?.isVisible ?? true);
+  const [isVisible, setIsVisible] = useState(existing?.draftIsVisible ?? true);
   const [sortOrder, setSortOrder] = useState(existing?.sortOrder ?? 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -96,7 +96,7 @@ export function SectionEditor({ existing, onDone }: SectionEditorProps) {
       </div>
       <label className="flex items-center gap-2 text-sm">
         <input type="checkbox" checked={isVisible} onChange={(e) => setIsVisible(e.target.checked)} />
-        Visible
+        Visible in draft
       </label>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex gap-2">

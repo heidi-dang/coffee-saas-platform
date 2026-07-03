@@ -6,9 +6,10 @@ interface SectionCardProps {
   section: CafePageSection;
   onEdit: (s: CafePageSection) => void;
   onDelete: (id: string) => void;
+  isPublished: boolean;
 }
 
-export function SectionCard({ section, onEdit, onDelete }: SectionCardProps) {
+export function SectionCard({ section, onEdit, onDelete, isPublished }: SectionCardProps) {
   return (
     <div className="flex items-center justify-between rounded border bg-white p-4 shadow-sm">
       <div className="flex-1">
@@ -18,10 +19,10 @@ export function SectionCard({ section, onEdit, onDelete }: SectionCardProps) {
           </span>
           {section.draftTitle && <span className="font-medium">{section.draftTitle}</span>}
           <span className="text-xs text-gray-500">#{section.sortOrder}</span>
-          {!section.isVisible && (
-            <span className="text-xs text-gray-400">(hidden)</span>
+          {!section.draftIsVisible && (
+            <span className="text-xs text-gray-400">(draft hidden)</span>
           )}
-          {section.isPublished && (
+          {isPublished && (
             <span className="text-xs text-green-600 font-medium">published</span>
           )}
         </div>

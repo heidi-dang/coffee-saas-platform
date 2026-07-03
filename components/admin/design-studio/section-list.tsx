@@ -25,12 +25,16 @@ export function SectionList() {
   useEffect(() => { load(); }, [load]);
 
   const handleHide = async (id: string) => {
-    if (!confirm("Hide this section?")) return;
+    if (!confirm("Hide this section? It will no longer appear in the editor.")) return;
     await deleteSection(id);
     load();
   };
 
   if (loading) return <div className="p-4 text-gray-500">Loading sections...</div>;
+
+  const publishedIds = new Set(
+    sections.filter((s) => s.publishedAt !== null).map((s) => s.id)
+  );
 
   return (
     <div className="space-y-4">
@@ -65,6 +69,7 @@ export function SectionList() {
               section={s}
               onEdit={(sec) => setEditing(sec)}
               onDelete={handleHide}
+              isPublished={publishedIds.has(s.id)}
             />
           ))}
         </div>

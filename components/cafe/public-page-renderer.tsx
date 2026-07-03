@@ -1,4 +1,5 @@
 import type { CafeTheme, CafePageSection } from "@/lib/generated/prisma/client";
+import { getPublicTheme } from "@/lib/design-studio/helpers";
 
 interface PublicPageRendererProps {
   theme: CafeTheme;
@@ -6,35 +7,39 @@ interface PublicPageRendererProps {
 }
 
 export function PublicPageRenderer({ theme, sections }: PublicPageRendererProps) {
-  const style: React.CSSProperties = {
-    backgroundColor: theme.backgroundColor ?? "#ffffff",
-    color: theme.textColor ?? "#111827",
-    fontFamily: theme.fontFamily === "system" ? undefined : theme.fontFamily ?? undefined,
-  };
+  const publicTheme = getPublicTheme(theme);
 
-  const visibleSections = sections.filter((s) => s.isVisible && s.isPublished);
-
-  if (visibleSections.length === 0) {
+  if (!publicTheme) {
     return (
-      <div style={style} className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center">
         <p className="text-gray-400">No content published yet</p>
       </div>
     );
   }
 
+  const style: React.CSSProperties = {
+    backgroundColor: publicTheme.backgroundColor,
+    color: publicTheme.textColor,
+    fontFamily: publicTheme.fontFamily === "system" ? undefined : publicTheme.fontFamily,
+  };
+
+  const visibleSections = sections.filter(
+    (s) => s.publishedIsVisible && s.publishedContent != null && s.deletedAt === null
+  );
+
   return (
     <div style={style} className="min-h-screen">
-      {theme.logoUrl && (
+      {publicTheme.logoUrl && (
         <div className="flex justify-center py-6">
-          <img src={theme.logoUrl} alt="Logo" className="h-16 object-contain" />
+          <img src={publicTheme.logoUrl} alt="Logo" className="h-16 object-contain" />
         </div>
       )}
-      {theme.heroImageUrl && (
-        <img src={theme.heroImageUrl} alt="Hero" className="w-full h-64 object-cover" />
+      {publicTheme.heroImageUrl && (
+        <img src={publicTheme.heroImageUrl} alt="Hero" className="w-full h-64 object-cover" />
       )}
       <div className="mx-auto max-w-4xl space-y-8 py-8 px-4">
         {visibleSections.map((section) => (
-          <SectionBlock key={section.id} section={section} accentColor={theme.accentColor ?? "#f59e0b"} />
+          <SectionBlock key={section.id} section={section} accentColor={publicTheme.accentColor} />
         ))}
       </div>
     </div>

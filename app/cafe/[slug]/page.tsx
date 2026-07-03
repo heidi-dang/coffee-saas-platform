@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import { PublicPageRenderer } from "@/components/cafe/public-page-renderer";
-import { hasPublishedDesign, getPublicTheme } from "@/lib/design-studio/helpers";
+import { hasPublishedDesign } from "@/lib/design-studio/helpers";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 type CafeWithMenu = Prisma.CafeGetPayload<{
@@ -11,7 +11,7 @@ type CafeWithMenu = Prisma.CafeGetPayload<{
     };
     theme: true;
     sections: {
-      where: { isPublished: true };
+      where: { publishedAt: { not: null }; deletedAt: null };
       orderBy: { sortOrder: "asc" };
     };
   };
@@ -51,7 +51,7 @@ export default async function CafePage({ params }: PageProps) {
       },
       theme: true,
       sections: {
-        where: { isPublished: true },
+        where: { publishedAt: { not: null }, deletedAt: null },
         orderBy: { sortOrder: "asc" },
       },
     },

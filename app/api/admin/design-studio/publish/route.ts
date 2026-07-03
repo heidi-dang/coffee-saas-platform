@@ -14,7 +14,7 @@ export async function POST() {
     }
 
     const draftSections = await db.cafePageSection.findMany({
-      where: { cafeId, isPublished: false },
+      where: { cafeId, deletedAt: null },
       orderBy: { sortOrder: "asc" },
     });
 

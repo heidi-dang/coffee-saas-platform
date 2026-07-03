@@ -13,7 +13,7 @@ export async function PATCH(
     const { id } = await params;
 
     const existing = await db.cafePageSection.findFirst({
-      where: { id, cafeId },
+      where: { id, cafeId, deletedAt: null },
     });
     if (!existing) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
@@ -26,7 +26,7 @@ export async function PATCH(
     if (parsed.title !== undefined) data.draftTitle = parsed.title;
     if (parsed.content !== undefined) data.draftContent = parsed.content;
     if (parsed.sortOrder !== undefined) data.sortOrder = parsed.sortOrder;
-    if (parsed.isVisible !== undefined) data.isVisible = parsed.isVisible;
+    if (parsed.isVisible !== undefined) data.draftIsVisible = parsed.isVisible;
     if (parsed.type !== undefined) data.type = parsed.type;
 
     const section = await db.cafePageSection.update({
@@ -54,7 +54,7 @@ export async function DELETE(
     const { id } = await params;
 
     const existing = await db.cafePageSection.findFirst({
-      where: { id, cafeId },
+      where: { id, cafeId, deletedAt: null },
     });
     if (!existing) {
       return NextResponse.json({ error: "Section not found" }, { status: 404 });
@@ -62,7 +62,7 @@ export async function DELETE(
 
     await db.cafePageSection.update({
       where: { id },
-      data: { isVisible: false },
+      data: { deletedAt: new Date() },
     });
 
     return NextResponse.json({ success: true });

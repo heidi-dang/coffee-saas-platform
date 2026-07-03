@@ -34,19 +34,24 @@ export function PreviewFrame() {
     fontFamily: theme.fontFamily === "system" ? undefined : theme.fontFamily,
   };
 
+  const visibleSections = sections.filter((s: any) => s.draftIsVisible);
+
   return (
     <div style={style} className="min-h-[400px] rounded-lg border p-6">
+      <div className="mb-4 rounded bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700 text-center">
+        Preview Mode — Customers cannot see these changes yet.
+      </div>
       {theme.logoUrl && (
         <img src={theme.logoUrl} alt="Logo" className="mx-auto mb-4 h-16 object-contain" />
       )}
       {theme.heroImageUrl && (
         <img src={theme.heroImageUrl} alt="Hero" className="mb-6 w-full rounded-lg object-cover h-48" />
       )}
-      {sections.length === 0 ? (
+      {visibleSections.length === 0 ? (
         <p className="text-center text-gray-400">No sections yet</p>
       ) : (
         <div className="space-y-6">
-          {sections.filter((s) => s.isVisible).map((s) => (
+          {visibleSections.map((s: any) => (
             <div key={s.id} className="rounded-lg border p-4" style={{ borderColor: theme.accentColor }}>
               {s.draftTitle && <h3 className="text-lg font-bold" style={{ color: theme.primaryColor }}>{s.draftTitle}</h3>}
               {(s.draftContent as any)?.text && <p className="mt-2">{(s.draftContent as any).text}</p>}

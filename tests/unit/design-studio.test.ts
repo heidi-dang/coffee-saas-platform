@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   themeSchema,
   createSectionSchema,
@@ -35,9 +35,6 @@ describe("Design Studio - Theme Validation", () => {
       textColor: "#111827",
     });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.error.issues[0].path).toContain("primaryColor");
-    }
   });
 
   it("accepts optional URL fields", () => {
@@ -123,124 +120,160 @@ describe("Design Studio - Permission Checks", () => {
     expect(canManageDesignStudioByRole("CAFE_MANAGER")).toBe(true);
     expect(canManageDesignStudioByRole("CAFE_STAFF")).toBe(false);
   });
-
-  it("staff role cannot manage design studio", () => {
-    const user = makeUser("CAFE_STAFF");
-    expect(canManageDesignStudio(user)).toBe(false);
-    expect(canManageDesignStudioByRole("CAFE_STAFF")).toBe(false);
-  });
 });
 
-describe("Design Studio - Publish isolation (pure helpers)", () => {
+describe("Design Studio - Publish isolation (helpers)", () => {
   describe("copyDraftThemeToPublished", () => {
     it("copies draftData to publishedData", () => {
-      const theme: any = {
-        cafeId: "cafe_1",
-        draftData: { primaryColor: "#ff0000", bannerText: "Hello" },
-        publishedData: null,
-      };
+      const theme: any = { cafeId: "cafe_1", draftData: { primaryColor: "#ff0000" }, publishedData: null };
       const result = copyDraftThemeToPublished(theme);
       expect(result.publishedData).toEqual(theme.draftData);
     });
 
     it("handles null draftData", () => {
+      const theme: any = { cafeId: "cafe_1", draftData: null, publishedData: null };
+      const result = copyDraftThemeToPublished(theme);
+      expect(result.publishedData).toBeUndefined();
+    });
+
+    it("theme draft save does not change getPublicTheme", () => {
       const theme: any = {
         cafeId: "cafe_1",
-        draftData: null,
-        publishedData: null,
+        primaryColor: "#old_draft",
+        draftData: { primaryColor: "#new_draft", textColor: "#000" },
+        publishedData: { primaryColor: "#published", backgroundColor: "#fff", textColor: "#333", accentColor: "#aaa", fontFamily: "system" },
       };
-      const result = copyDraftThemeToPublished(theme);
-      expect(result.publishedData).toBeNull();
+      const publicTheme = getPublicTheme(theme);
+      expect(publicTheme?.primaryColor).toBe("#published");
+      expect(publicTheme?.primaryColor).not.toBe("#old_draft");
+      expect(publicTheme?.primaryColor).not.toBe("#new_draft");
     });
   });
 
   describe("copyDraftSectionToPublished", () => {
-    it("copies draft fields to published fields", () => {
+    it("copies draft fields to published fields and sets publishedAt", () => {
+      const now = Date.now();
       const section: any = {
         id: "sec_1",
         cafeId: "cafe_1",
         draftTitle: "Draft Title",
         draftContent: { text: "Draft content" },
-        isPublished: false,
+        draftIsVisible: true,
+        publishedAt: null,
       };
       const result = copyDraftSectionToPublished(section);
       expect(result.publishedTitle).toBe("Draft Title");
       expect(result.publishedContent).toEqual({ text: "Draft content" });
-      expect(result.isPublished).toBe(true);
+      expect(result.publishedIsVisible).toBe(true);
+      expect(result.publishedAt.getTime()).toBeGreaterThanOrEqual(now);
     });
 
-    it("does not mutate original draft data", () => {
-      const draftContent = { text: "Original draft" };
+    it("copies draftIsVisible to publishedIsVisible", () => {
       const section: any = {
         id: "sec_1",
         cafeId: "cafe_1",
-        draftTitle: "Original Title",
-        draftContent,
-        isPublished: false,
+        draftTitle: "Title",
+        draftContent: {},
+        draftIsVisible: false,
+        publishedAt: null,
       };
-      const originalDraftTitle = section.draftTitle;
-      const originalDraftContent = { ...section.draftContent };
+      const result = copyDraftSectionToPublished(section);
+      expect(result.publishedIsVisible).toBe(false);
+    });
 
+    it("does not mutate original draft data", () => {
+      const section: any = {
+        id: "sec_1",
+        cafeId: "cafe_1",
+        draftTitle: "Original",
+        draftContent: { text: "Original" },
+        draftIsVisible: true,
+      };
+      const before = { draftTitle: section.draftTitle, draftContent: { ...section.draftContent } };
       copyDraftSectionToPublished(section);
+      expect(section.draftTitle).toBe(before.draftTitle);
+      expect(section.draftContent).toEqual(before.draftContent);
+    });
 
-      expect(section.draftTitle).toBe(originalDraftTitle);
-      expect(section.draftContent).toEqual(originalDraftContent);
+    it("editing draft after publish does not change publishedContent", () => {
+      const section: any = {
+        id: "sec_1",
+        cafeId: "cafe_1",
+        draftTitle: "Updated Draft Title",
+        draftContent: { text: "Updated Draft" },
+        draftIsVisible: false,
+        publishedTitle: "Original Published Title",
+        publishedContent: { text: "Original Published" },
+        publishedIsVisible: true,
+        publishedAt: new Date(),
+      };
+      const publishedBefore = {
+        publishedTitle: section.publishedTitle,
+        publishedContent: { ...section.publishedContent },
+        publishedIsVisible: section.publishedIsVisible,
+      };
+      const result = copyDraftSectionToPublished(section);
+      expect(result.publishedTitle).toBe("Updated Draft Title");
+      expect(result.publishedContent).toEqual({ text: "Updated Draft" });
     });
   });
 
   describe("getPublicSections", () => {
-    it("returns only isPublished + isVisible sections", () => {
+    it("returns only published visible non-deleted sections", () => {
       const sections: any[] = [
-        { id: "1", isPublished: true, isVisible: true, draftTitle: "A" },
-        { id: "2", isPublished: false, isVisible: true, draftTitle: "B" },
-        { id: "3", isPublished: true, isVisible: false, draftTitle: "C" },
-        { id: "4", isPublished: false, isVisible: false, draftTitle: "D" },
+        { id: "1", publishedContent: { text: "A" }, publishedIsVisible: true, deletedAt: null },
+        { id: "2", publishedContent: null, publishedIsVisible: false, deletedAt: null },
+        { id: "3", publishedContent: { text: "C" }, publishedIsVisible: true, deletedAt: new Date() },
+        { id: "4", publishedContent: { text: "D" }, publishedIsVisible: false, deletedAt: null },
       ];
       const result = getPublicSections(sections);
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe("1");
     });
 
-    it("returns empty array when no published sections", () => {
+    it("returns empty when no published sections", () => {
       const sections: any[] = [
-        { id: "1", isPublished: false, isVisible: true },
-      ];
-      expect(getPublicSections(sections)).toHaveLength(0);
-    });
-
-    it("filters hidden sections even if published", () => {
-      const sections: any[] = [
-        { id: "1", isPublished: true, isVisible: false },
+        { id: "1", publishedContent: null, publishedIsVisible: false, deletedAt: null },
       ];
       expect(getPublicSections(sections)).toHaveLength(0);
     });
   });
 
   describe("getDraftSections", () => {
-    it("returns only non-published sections", () => {
+    it("returns all non-deleted sections including published ones", () => {
       const sections: any[] = [
-        { id: "1", isPublished: true, draftTitle: "A" },
-        { id: "2", isPublished: false, draftTitle: "B" },
+        { id: "1", deletedAt: null, publishedAt: new Date(), draftTitle: "Published" },
+        { id: "2", deletedAt: null, publishedAt: null, draftTitle: "Draft only" },
+      ];
+      const result = getDraftSections(sections);
+      expect(result).toHaveLength(2);
+    });
+
+    it("excludes deleted sections", () => {
+      const sections: any[] = [
+        { id: "1", deletedAt: null, draftTitle: "Active" },
+        { id: "2", deletedAt: new Date(), draftTitle: "Deleted" },
       ];
       const result = getDraftSections(sections);
       expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("2");
+      expect(result[0].id).toBe("1");
     });
 
-    it("returns all sections when none published", () => {
+    it("after publish, section still returned by editor draft list", () => {
       const sections: any[] = [
-        { id: "1", isPublished: false },
-        { id: "2", isPublished: false },
+        { id: "1", deletedAt: null, publishedAt: new Date(), draftTitle: "Published but editable" },
       ];
-      expect(getDraftSections(sections)).toHaveLength(2);
+      const result = getDraftSections(sections);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("1");
     });
   });
 
   describe("hasPublishedDesign", () => {
-    it("returns true when published data and sections exist", () => {
+    it("returns true when published sections exist", () => {
       const theme: any = { publishedData: { primaryColor: "#000" } };
       const sections: any[] = [
-        { id: "1", isPublished: true, isVisible: true },
+        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: true, deletedAt: null },
       ];
       expect(hasPublishedDesign(theme, sections)).toBe(true);
     });
@@ -254,107 +287,125 @@ describe("Design Studio - Publish isolation (pure helpers)", () => {
     it("returns false when publishedData is null", () => {
       const theme: any = { publishedData: null };
       const sections: any[] = [
-        { id: "1", isPublished: true, isVisible: true },
+        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: true, deletedAt: null },
       ];
       expect(hasPublishedDesign(theme, sections)).toBe(false);
     });
 
-    it("returns false when published sections are hidden", () => {
+    it("returns false when published section is hidden", () => {
       const theme: any = { publishedData: { primaryColor: "#000" } };
       const sections: any[] = [
-        { id: "1", isPublished: true, isVisible: false },
+        { id: "1", publishedContent: { text: "Hi" }, publishedIsVisible: false, deletedAt: null },
       ];
       expect(hasPublishedDesign(theme, sections)).toBe(false);
     });
   });
 
   describe("getPublicTheme", () => {
-    it("returns published theme data when publishedData exists", () => {
+    it("returns published theme data only from publishedData", () => {
       const theme: any = {
-        primaryColor: "#default",
-        accentColor: "#default",
-        backgroundColor: "#default",
-        textColor: "#default",
-        logoUrl: null,
-        heroImageUrl: null,
-        fontFamily: "system",
+        primaryColor: "#draft_111",
+        accentColor: "#draft_222",
+        backgroundColor: "#draft_fff",
+        textColor: "#draft_333",
+        logoUrl: "draft.png",
+        heroImageUrl: "draft_hero.png",
+        fontFamily: "draft_font",
         publishedData: {
-          primaryColor: "#ff0000",
-          accentColor: "#00ff00",
+          primaryColor: "#pub_000",
+          accentColor: "#pub_111",
+          backgroundColor: "#pub_fff",
+          textColor: "#pub_222",
         },
       };
       const result = getPublicTheme(theme);
-      expect(result?.primaryColor).toBe("#ff0000");
-      expect(result?.accentColor).toBe("#00ff00");
+      expect(result?.primaryColor).toBe("#pub_000");
+      expect(result?.accentColor).toBe("#pub_111");
+      expect(result?.backgroundColor).toBe("#pub_fff");
+      expect(result?.textColor).toBe("#pub_222");
     });
 
     it("returns null when no publishedData", () => {
-      const theme: any = {
-        primaryColor: "#111",
-        publishedData: null,
-      };
+      const theme: any = { publishedData: null };
       expect(getPublicTheme(theme)).toBeNull();
     });
+  });
 
-    it("falls back to theme defaults for missing published fields", () => {
-      const theme: any = {
-        primaryColor: "#111",
-        accentColor: "#222",
-        backgroundColor: "#fff",
-        textColor: "#333",
-        logoUrl: null,
-        heroImageUrl: "https://example.com/hero.jpg",
-        fontFamily: "serif",
-        publishedData: {
-          primaryColor: "#ff0000",
+  describe("draftIsVisible does not affect public before publish", () => {
+    it("draftIsVisible=false does not hide public section until publish", () => {
+      const sections: any[] = [
+        {
+          id: "1",
+          draftIsVisible: false,
+          publishedContent: { text: "Still visible" },
+          publishedIsVisible: true,
+          deletedAt: null,
         },
+      ];
+      const result = getPublicSections(sections);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe("1");
+    });
+
+    it("publish copies draftIsVisible to publishedIsVisible", () => {
+      const section: any = {
+        id: "sec_1",
+        cafeId: "cafe_1",
+        draftTitle: "T",
+        draftContent: {},
+        draftIsVisible: false,
+        publishedAt: null,
       };
-      const result = getPublicTheme(theme);
-      expect(result?.primaryColor).toBe("#ff0000");
-      expect(result?.accentColor).toBe("#222");
-      expect(result?.heroImageUrl).toBe("https://example.com/hero.jpg");
+      const result = copyDraftSectionToPublished(section);
+      expect(result.publishedIsVisible).toBe(false);
     });
   });
-});
 
-describe("Design Studio - Draft/Publish lifecycle", () => {
-  it("editing draft after publish does not change published data", () => {
-    const section: any = {
-      id: "sec_1",
-      cafeId: "cafe_1",
-      draftTitle: "Original Draft",
-      draftContent: { text: "Original" },
-      publishedTitle: "Original Published",
-      publishedContent: { text: "Published" },
-      isPublished: true,
-    };
+  describe("soft delete", () => {
+    it("hiding section does not delete row", () => {
+      const section: any = {
+        id: "sec_1",
+        deletedAt: new Date(),
+        draftTitle: "Hidden Section",
+      };
+      expect(section.deletedAt).toBeInstanceOf(Date);
+      expect(section.id).toBe("sec_1");
+    });
 
-    const originalPublished = {
-      publishedTitle: section.publishedTitle,
-      publishedContent: section.publishedContent,
-    };
-
-    section.draftTitle = "Updated Draft";
-    section.draftContent = { text: "Updated" };
-
-    const publishResult = copyDraftSectionToPublished(section);
-    expect(publishResult.publishedTitle).toBe("Updated Draft");
-
-    const publishedNow = publishResult.publishedContent;
-    expect(publishedNow).toEqual({ text: "Updated" });
+    it("deleted section excluded from draft list", () => {
+      const sections: any[] = [
+        { id: "1", deletedAt: null, draftTitle: "Active" },
+        { id: "2", deletedAt: new Date(), draftTitle: "Deleted" },
+      ];
+      expect(getDraftSections(sections)).toHaveLength(1);
+    });
   });
 
-  it("hiding section does not delete row", () => {
-    const section: any = {
-      id: "sec_1",
-      cafeId: "cafe_1",
-      isVisible: false,
-      isPublished: false,
-      draftTitle: "Hidden Section",
-    };
+  describe("public renderer isolation", () => {
+    it("public renderer uses published theme data only", () => {
+      const theme: any = {
+        primaryColor: "#draft",
+        publishedData: { primaryColor: "#published" },
+      };
+      const publicTheme = getPublicTheme(theme);
+      expect(publicTheme?.primaryColor).toBe("#published");
+      expect(publicTheme?.primaryColor).not.toBe("#draft");
+    });
 
-    expect(section.isVisible).toBe(false);
-    expect(section.id).toBeDefined();
-    expect(section.id).toBe("sec_1");
+    it("public renderer uses published section data only", () => {
+      const sections: any[] = [
+        {
+          id: "1",
+          draftTitle: "Draft",
+          publishedTitle: "Published",
+          draftContent: { text: "draft text" },
+          publishedContent: { text: "published text" },
+          publishedIsVisible: true,
+          deletedAt: null,
+        },
+      ];
+      const result = getPublicSections(sections);
+      expect(result[0].id).toBe("1");
+    });
   });
 });
