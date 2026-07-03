@@ -113,7 +113,7 @@ export function OrderClient({
               unitPriceCents: params.unitPriceCents,
               selectedOptions: params.selectedOptions,
               notes: params.notes,
-              quantity: 1,
+              quantity: params.quantity,
             });
           }}
         />
@@ -134,6 +134,7 @@ export function OrderClient({
 
       <CartDrawer
         cafeSlug={cafeSlug}
+        tableToken={tableToken}
         open={cartOpen}
         onClose={() => setCartOpen(false)}
       />

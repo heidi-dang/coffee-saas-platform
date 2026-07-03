@@ -122,6 +122,37 @@ export async function POST(request: Request) {
         });
       }
 
+      for (const optDef of menuItem.options) {
+        if (optDef.required) {
+          const count = itemInput.selectedOptions.filter(
+            (o) => o.optionId === optDef.id
+          ).length;
+          if (optDef.minSelect > 0 && count < optDef.minSelect) {
+            return NextResponse.json(
+              { error: `${optDef.name} requires at least ${optDef.minSelect} selection(s)` },
+              { status: 400 }
+            );
+          }
+          if (count < optDef.minSelect) {
+            return NextResponse.json(
+              { error: `${optDef.name} is required` },
+              { status: 400 }
+            );
+          }
+        }
+        if (optDef.maxSelect > 0) {
+          const count = itemInput.selectedOptions.filter(
+            (o) => o.optionId === optDef.id
+          ).length;
+          if (count > optDef.maxSelect) {
+            return NextResponse.json(
+              { error: `${optDef.name} allows at most ${optDef.maxSelect} selection(s)` },
+              { status: 400 }
+            );
+          }
+        }
+      }
+
       const lineTotalCents = itemPriceCents * itemInput.quantity;
       subtotalCents += lineTotalCents;
 

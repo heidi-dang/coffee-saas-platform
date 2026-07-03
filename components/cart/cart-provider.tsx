@@ -93,11 +93,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const totalCents = state.items.reduce((sum, item) => {
-    const optionsPrice = item.selectedOptions.reduce(
-      (o, opt) => o + opt.priceCents,
-      0
-    );
-    return sum + (item.unitPriceCents + optionsPrice) * item.quantity;
+    return sum + item.unitPriceCents * item.quantity;
   }, 0);
 
   const itemCount = state.items.reduce((sum, item) => sum + item.quantity, 0);

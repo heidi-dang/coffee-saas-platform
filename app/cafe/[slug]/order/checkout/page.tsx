@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 
 interface PageProps {
@@ -20,6 +21,33 @@ export default async function CheckoutPage({
   });
 
   if (!cafe) notFound();
+
+  let tableError: string | null = null;
+  if (tableToken) {
+    const table = await db.cafeTable.findUnique({
+      where: { qrToken: tableToken, cafeId: cafe.id },
+    });
+    if (!table) {
+      tableError = "Invalid table. The QR code may be expired or unrecognised.";
+    } else if (!table.isActive) {
+      tableError = "This table is not available for ordering.";
+    }
+  }
+
+  if (tableError) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+        <h1 className="text-2xl font-bold mb-4">Table Unavailable</h1>
+        <p className="text-muted-foreground mb-6">{tableError}</p>
+        <Link
+          href={`/cafe/${slug}/order`}
+          className="inline-flex h-12 items-center justify-center rounded-full bg-foreground text-background px-8 font-medium hover:opacity-90"
+        >
+          Back to Menu
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">

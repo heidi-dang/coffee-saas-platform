@@ -37,6 +37,7 @@ interface MenuItemModalProps {
     menuItemId: string;
     name: string;
     unitPriceCents: number;
+    quantity: number;
     selectedOptions: {
       optionId: string;
       optionName: string;
@@ -124,6 +125,7 @@ export function MenuItemModal({ item, onClose, onAdd }: MenuItemModalProps) {
       menuItemId: item.id,
       name: item.name,
       unitPriceCents,
+      quantity,
       selectedOptions,
       notes,
     });

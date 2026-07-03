@@ -7,11 +7,12 @@ import Link from "next/link";
 
 interface CartDrawerProps {
   cafeSlug: string;
+  tableToken?: string;
   open: boolean;
   onClose: () => void;
 }
 
-export function CartDrawer({ cafeSlug, open, onClose }: CartDrawerProps) {
+export function CartDrawer({ cafeSlug, tableToken, open, onClose }: CartDrawerProps) {
   const { items, totalCents, updateQuantity, removeItem } = useCart();
 
   if (!open) return null;
@@ -34,12 +35,7 @@ export function CartDrawer({ cafeSlug, open, onClose }: CartDrawerProps) {
             </p>
           )}
           {items.map((item) => {
-            const optionsPrice = item.selectedOptions.reduce(
-              (s, o) => s + o.priceCents,
-              0
-            );
-            const lineTotal =
-              ((item.unitPriceCents + optionsPrice) * item.quantity) / 100;
+            const lineTotal = (item.unitPriceCents * item.quantity) / 100;
             return (
               <div key={item.id} className="border rounded-lg p-3">
                 <div className="flex justify-between items-start">
@@ -106,7 +102,13 @@ export function CartDrawer({ cafeSlug, open, onClose }: CartDrawerProps) {
               <span>Total</span>
               <span>${(totalCents / 100).toFixed(2)}</span>
             </div>
-            <Link href={`/cafe/${cafeSlug}/order/checkout`}>
+            <Link
+              href={
+                tableToken
+                  ? `/cafe/${cafeSlug}/order/checkout?tableToken=${encodeURIComponent(tableToken)}`
+                  : `/cafe/${cafeSlug}/order/checkout`
+              }
+            >
               <Button className="w-full" size="lg" onClick={onClose}>
                 Go to Checkout
               </Button>
