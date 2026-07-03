@@ -22,6 +22,15 @@ export default async function AdminLayout({
     if (pathname.startsWith("/admin/tables") && !["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
       redirect("/admin/orders");
     }
+    if (pathname.startsWith("/admin/customers") && !["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
+      redirect("/admin/orders");
+    }
+    if (pathname.startsWith("/admin/analytics") && !["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
+      redirect("/admin/orders");
+    }
+    if (pathname.startsWith("/admin/feedback") && !["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
+      redirect("/admin/orders");
+    }
     if (pathname.startsWith("/admin/settings") && !["PLATFORM_ADMIN", "CAFE_OWNER"].includes(user.role)) {
       redirect("/admin/orders");
     }
