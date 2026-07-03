@@ -14,12 +14,18 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const tables = await db.cafeTable.findMany({
-    where: { cafeId: user.cafeId },
-    orderBy: { tableNumber: "asc" },
-  });
+  const [tables, cafe] = await Promise.all([
+    db.cafeTable.findMany({
+      where: { cafeId: user.cafeId },
+      orderBy: { tableNumber: "asc" },
+    }),
+    db.cafe.findUnique({
+      where: { id: user.cafeId },
+      select: { slug: true },
+    }),
+  ]);
 
-  return NextResponse.json({ tables });
+  return NextResponse.json({ tables, cafeSlug: cafe?.slug || "" });
 }
 
 export async function POST(request: Request) {

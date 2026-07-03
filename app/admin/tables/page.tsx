@@ -13,17 +13,27 @@ interface CafeTable {
   createdAt: string;
 }
 
+function qrUrl(orderUrl: string): string {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(orderUrl)}`;
+}
+
 export default function AdminTablesPage() {
   const [tables, setTables] = useState<CafeTable[]>([]);
   const [loading, setLoading] = useState(true);
   const [newTableNum, setNewTableNum] = useState("");
-  const [qrUrls, setQrUrls] = useState<Record<string, string>>({});
+  const [cafeSlug, setCafeSlug] = useState("");
   const printRef = useRef<HTMLDivElement>(null);
+
+  function orderUrlForTable(table: CafeTable): string {
+    const origin = window?.location?.origin || "";
+    return `${origin}/cafe/${cafeSlug || "demo-coffee"}/order?tableToken=${table.qrToken}`;
+  }
 
   async function loadTables() {
     const res = await fetch("/api/admin/tables");
     const data = await res.json();
     setTables(data.tables || []);
+    setCafeSlug(data.cafeSlug || "");
     setLoading(false);
   }
 
@@ -64,13 +74,6 @@ export default function AdminTablesPage() {
     if (!confirm("Delete this table?")) return;
     await fetch(`/api/admin/tables/${tableId}`, { method: "DELETE" });
     loadTables();
-  }
-
-  async function loadQrUrl(tableId: string) {
-    if (qrUrls[tableId]) return;
-    const res = await fetch(`/api/admin/tables/${tableId}/qr`);
-    const data = await res.json();
-    setQrUrls((prev) => ({ ...prev, [tableId]: data.qrUrl }));
   }
 
   function downloadQr(url: string, label: string) {
@@ -126,91 +129,80 @@ export default function AdminTablesPage() {
       </div>
 
       <div ref={printRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {tables.map((table) => (
-          <div
-            key={table.id}
-            className={`border rounded-lg p-4 ${
-              !table.isActive ? "opacity-60" : ""
-            }`}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold">Table {table.tableNumber}</h3>
-              <span
-                className={`text-xs px-2 py-0.5 rounded ${
-                  table.isActive
-                    ? "bg-green-100 text-green-700"
-                    : "bg-gray-100 text-gray-500"
-                }`}
-              >
-                {table.isActive ? "Active" : "Disabled"}
-              </span>
-            </div>
-
-            <button
-              onClick={() => loadQrUrl(table.id)}
-              className="w-full border rounded-lg p-2 mb-3 hover:bg-accent/50"
+        {tables.map((table) => {
+          const url = orderUrlForTable(table);
+          return (
+            <div
+              key={table.id}
+              className={`border rounded-lg p-4 ${
+                !table.isActive ? "opacity-60" : ""
+              }`}
             >
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(
-                  `${window?.location?.origin || ""}/cafe/demo-coffee/order?tableToken=${table.qrToken}`
-                )}`}
-                alt={`QR for Table ${table.tableNumber}`}
-                className="w-full max-w-[200px] mx-auto"
-              />
-            </button>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Table {table.tableNumber}</h3>
+                <span
+                  className={`text-xs px-2 py-0.5 rounded ${
+                    table.isActive
+                      ? "bg-green-100 text-green-700"
+                      : "bg-gray-100 text-gray-500"
+                  }`}
+                >
+                  {table.isActive ? "Active" : "Disabled"}
+                </span>
+              </div>
 
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() =>
-                  toggleTable(table.id, table.isActive)
-                }
-                className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
-              >
-                {table.isActive ? "Disable" : "Enable"}
-              </button>
-              <button
-                onClick={() => regenerateQr(table.id)}
-                className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
-              >
-                <RefreshCw className="h-3 w-3 inline mr-1" />
-                New QR
-              </button>
-              {qrUrls[table.id] && (
-                <>
-                  <button
-                    onClick={() =>
-                      downloadQr(
-                        qrUrls[table.id],
-                        `Table-${table.tableNumber}`
-                      )
-                    }
-                    className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
-                  >
-                    <Download className="h-3 w-3 inline mr-1" />
-                    Download
-                  </button>
-                  <button
-                    onClick={() =>
-                      printQr(
-                        qrUrls[table.id],
-                        `Table ${table.tableNumber}`
-                      )
-                    }
-                    className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
-                  >
-                    Print
-                  </button>
-                </>
-              )}
-              <button
-                onClick={() => deleteTable(table.id)}
-                className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
+              <div className="w-full border rounded-lg p-2 mb-3">
+                <img
+                  src={qrUrl(url)}
+                  alt={`QR for Table ${table.tableNumber}`}
+                  className="w-full max-w-[200px] mx-auto"
+                />
+                <p className="text-xs text-muted-foreground text-center mt-1 truncate">{url}</p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() =>
+                    toggleTable(table.id, table.isActive)
+                  }
+                  className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
+                >
+                  {table.isActive ? "Disable" : "Enable"}
+                </button>
+                <button
+                  onClick={() => regenerateQr(table.id)}
+                  className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
+                >
+                  <RefreshCw className="h-3 w-3 inline mr-1" />
+                  New QR
+                </button>
+                <button
+                  onClick={() =>
+                    downloadQr(url, `Table-${table.tableNumber}`)
+                  }
+                  className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
+                >
+                  <Download className="h-3 w-3 inline mr-1" />
+                  Download
+                </button>
+                <button
+                  onClick={() =>
+                    printQr(url, `Table ${table.tableNumber}`)
+                  }
+                  className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80"
+                >
+                  Print
+                </button>
+                <button
+                  onClick={() => deleteTable(table.id)}
+                  className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 hover:bg-red-100"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

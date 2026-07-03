@@ -2,9 +2,28 @@ import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.JWT_SECRET || "coffee-saas-dev-secret-do-not-use-in-production"
-);
+let _jwtSecret: Uint8Array | null = null;
+
+function getJwtSecret(): Uint8Array {
+  if (_jwtSecret) return _jwtSecret;
+
+  const secret = process.env.JWT_SECRET;
+  const env = process.env.NODE_ENV;
+  const appEnv = process.env.APP_ENV;
+
+  if (env === "production" || appEnv === "test") {
+    if (!secret || secret.length < 32) {
+      throw new Error(
+        `JWT_SECRET is required when NODE_ENV=${env} or APP_ENV=${appEnv}. Set a strong, unique JWT_SECRET (min 32 characters) in your environment.`
+      );
+    }
+  }
+
+  _jwtSecret = new TextEncoder().encode(
+    secret || "coffee-saas-dev-secret-do-not-use-in-production"
+  );
+  return _jwtSecret;
+}
 const COOKIE_NAME = "session";
 const SESSION_DURATION = 60 * 60 * 24; // 24 hours
 
@@ -32,7 +51,7 @@ export async function createSession(user: SessionUser): Promise<string> {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION}s`)
-    .sign(JWT_SECRET);
+    .sign(getJwtSecret());
   return token;
 }
 
@@ -40,7 +59,7 @@ export async function verifySession(
   token: string
 ): Promise<SessionUser | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET);
+    const { payload } = await jwtVerify(token, getJwtSecret());
     return payload as unknown as SessionUser;
   } catch {
     return null;
