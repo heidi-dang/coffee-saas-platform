@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
+import { isStripeConfigured } from "@/lib/payments/stripe";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -49,6 +50,9 @@ export default async function CheckoutPage({
     );
   }
 
+  const onlinePaymentAvailable =
+    Boolean(cafe.settings?.acceptOnlinePayment) && isStripeConfigured();
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <h1 className="text-2xl font-bold mb-6">Checkout</h1>
@@ -60,7 +64,7 @@ export default async function CheckoutPage({
           acceptTakeaway: cafe.settings?.acceptTakeaway ?? true,
           acceptPickup: cafe.settings?.acceptPickup ?? true,
           acceptPayAtCounter: cafe.settings?.acceptPayAtCounter ?? true,
-          acceptOnlinePayment: cafe.settings?.acceptOnlinePayment ?? false,
+          acceptOnlinePayment: onlinePaymentAvailable,
         }}
       />
     </div>

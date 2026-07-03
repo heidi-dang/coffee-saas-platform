@@ -11,8 +11,12 @@ export async function POST(request: Request) {
       return badRequest("Invalid request", parsed.error.issues);
     }
 
-    const { paymentMethod, ...orderInput } = parsed.data;
-    const result = await createOrder(orderInput, { paymentMethod });
+    if (parsed.data.paymentMethod === "ONLINE") {
+      return badRequest("Online payment orders must use Stripe checkout.");
+    }
+
+    const { paymentMethod: _ignored, ...orderInput } = parsed.data;
+    const result = await createOrder(orderInput, { paymentMethod: "PAY_AT_COUNTER" });
 
     if (!result.ok) {
       return badRequest(result.error);

@@ -67,18 +67,59 @@ export async function POST(request: Request) {
   }
 }
 
+function verifySessionMatchesOrder(
+  session: Stripe.Checkout.Session,
+  order: { id: string; cafeId: string; stripeSessionId: string | null; totalCents: number; paymentStatus: string; cafe: { currency: string } }
+): { ok: true } | { ok: false; reason: string } {
+  if (session.payment_status !== "paid") {
+    return { ok: false, reason: "session not paid" };
+  }
+  const sessionOrderId = session.metadata?.orderId;
+  const sessionCafeId = session.metadata?.cafeId;
+  if (!sessionOrderId || sessionOrderId !== order.id) {
+    return { ok: false, reason: "orderId mismatch" };
+  }
+  if (!sessionCafeId || sessionCafeId !== order.cafeId) {
+    return { ok: false, reason: "cafeId mismatch" };
+  }
+  if (!order.stripeSessionId || order.stripeSessionId !== session.id) {
+    return { ok: false, reason: "sessionId mismatch" };
+  }
+  if (typeof session.amount_total !== "number" || session.amount_total !== order.totalCents) {
+    return { ok: false, reason: "amount mismatch" };
+  }
+  const expectedCurrency = order.cafe.currency.toLowerCase();
+  if (!session.currency || session.currency.toLowerCase() !== expectedCurrency) {
+    return { ok: false, reason: "currency mismatch" };
+  }
+  return { ok: true };
+}
+
 async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   const orderId = session.metadata?.orderId;
-  if (!orderId) return;
-
-  if (session.payment_status !== "paid") {
+  if (!orderId) {
+    console.warn("Stripe checkout.session.completed missing orderId metadata");
     return;
   }
 
-  const existing = await db.order.findUnique({ where: { id: orderId } });
-  if (!existing) return;
+  const order = await db.order.findUnique({
+    where: { id: orderId },
+    include: { cafe: { select: { currency: true } } },
+  });
+  if (!order) {
+    console.warn(`Stripe checkout.session.completed for unknown order ${orderId}`);
+    return;
+  }
 
-  if (existing.paymentStatus === "PAID" && existing.paidAt) {
+  if (order.paymentStatus === "PAID" && order.paidAt) {
+    return;
+  }
+
+  const check = verifySessionMatchesOrder(session, order);
+  if (!check.ok) {
+    console.warn(
+      `Stripe checkout.session.completed rejected for order ${orderId}: ${check.reason}`
+    );
     return;
   }
 
@@ -99,9 +140,13 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
 async function handleCheckoutExpired(session: Stripe.Checkout.Session) {
   const orderId = session.metadata?.orderId;
   if (!orderId) return;
-  const existing = await db.order.findUnique({ where: { id: orderId } });
-  if (!existing) return;
-  if (existing.paymentStatus === "PENDING") {
+  const order = await db.order.findUnique({ where: { id: orderId } });
+  if (!order) return;
+  if (order.stripeSessionId !== session.id) {
+    console.warn(`Stripe checkout.session.expired sessionId mismatch for order ${orderId}`);
+    return;
+  }
+  if (order.paymentStatus === "PENDING") {
     await db.order.update({
       where: { id: orderId },
       data: { paymentStatus: "FAILED" },
@@ -112,9 +157,13 @@ async function handleCheckoutExpired(session: Stripe.Checkout.Session) {
 async function handleCheckoutFailed(session: Stripe.Checkout.Session) {
   const orderId = session.metadata?.orderId;
   if (!orderId) return;
-  const existing = await db.order.findUnique({ where: { id: orderId } });
-  if (!existing) return;
-  if (existing.paymentStatus === "PENDING" || existing.paymentStatus === "FAILED") {
+  const order = await db.order.findUnique({ where: { id: orderId } });
+  if (!order) return;
+  if (order.stripeSessionId !== session.id) {
+    console.warn(`Stripe checkout.session.async_payment_failed sessionId mismatch for order ${orderId}`);
+    return;
+  }
+  if (order.paymentStatus === "PENDING" || order.paymentStatus === "FAILED") {
     await db.order.update({
       where: { id: orderId },
       data: { paymentStatus: "FAILED" },

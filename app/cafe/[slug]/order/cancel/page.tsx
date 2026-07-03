@@ -4,30 +4,13 @@ import Link from "next/link";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ orderId?: string }>;
 }
 
-export default async function CancelPage({
-  params,
-  searchParams,
-}: PageProps) {
+export default async function CancelPage({ params }: PageProps) {
   const { slug } = await params;
-  const { orderId } = await searchParams;
 
   const cafe = await db.cafe.findUnique({ where: { slug } });
   if (!cafe) notFound();
-
-  if (orderId) {
-    const order = await db.order.findUnique({
-      where: { id: orderId, cafeId: cafe.id },
-    });
-    if (order && order.paymentStatus === "PENDING") {
-      await db.order.update({
-        where: { id: order.id },
-        data: { paymentStatus: "FAILED" },
-      });
-    }
-  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -49,7 +32,7 @@ export default async function CancelPage({
         </div>
         <h1 className="text-3xl font-bold mb-2">Payment Cancelled</h1>
         <p className="text-muted-foreground">
-          Your payment was cancelled. No charge was made.
+          Payment cancelled. Please try again or return to menu.
         </p>
       </div>
 

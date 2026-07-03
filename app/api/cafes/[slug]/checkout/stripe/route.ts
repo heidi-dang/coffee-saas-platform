@@ -68,18 +68,31 @@ export async function POST(request: Request, { params }: RouteParams) {
     const cancelUrl = `${baseUrl}/cafe/${slug}/order/cancel?orderId=${order.orderId}`;
 
     const stripe = getStripe();
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      payment_method_types: ["card"],
-      line_items: lineItems,
-      currency: cafe.currency.toLowerCase(),
-      success_url: successUrl,
-      cancel_url: cancelUrl,
-      metadata: {
-        orderId: order.orderId,
-        cafeId: cafe.id,
-      },
-    });
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create({
+        mode: "payment",
+        payment_method_types: ["card"],
+        line_items: lineItems,
+        currency: cafe.currency.toLowerCase(),
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        metadata: {
+          orderId: order.orderId,
+          cafeId: cafe.id,
+        },
+      });
+    } catch (stripeError: any) {
+      console.error("Stripe session creation failed, marking order FAILED:", stripeError?.message);
+      await db.order.update({
+        where: { id: order.orderId },
+        data: { paymentStatus: "FAILED" },
+      }).catch(() => {});
+      return NextResponse.json(
+        { error: "Failed to start payment. Please try again or pay at counter." },
+        { status: 500 }
+      );
+    }
 
     await db.order.update({
       where: { id: order.orderId },
@@ -93,9 +106,6 @@ export async function POST(request: Request, { params }: RouteParams) {
     });
   } catch (error: any) {
     console.error("Stripe checkout error:", error);
-    return NextResponse.json(
-      { error: error?.message || "Failed to create checkout session" },
-      { status: 500 }
-    );
+    return serverError(error);
   }
 }
