@@ -10,38 +10,22 @@ export function PublicPageRenderer({ theme, sections }: PublicPageRendererProps)
   const publicTheme = getPublicTheme(theme);
 
   if (!publicTheme) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-gray-400">No content published yet</p>
-      </div>
-    );
+    return null;
   }
-
-  const style: React.CSSProperties = {
-    backgroundColor: publicTheme.backgroundColor,
-    color: publicTheme.textColor,
-    fontFamily: publicTheme.fontFamily === "system" ? undefined : publicTheme.fontFamily,
-  };
 
   const visibleSections = sections.filter(
     (s) => s.publishedIsVisible && s.publishedContent != null && s.publishedDeletedAt === null
   );
 
+  if (visibleSections.length === 0) {
+    return null;
+  }
+
   return (
-    <div style={style} className="min-h-screen">
-      {publicTheme.logoUrl && (
-        <div className="flex justify-center py-6 px-4">
-          <img src={publicTheme.logoUrl} alt="Logo" className="h-16 object-contain" />
-        </div>
-      )}
-      {publicTheme.heroImageUrl && (
-        <img src={publicTheme.heroImageUrl} alt="Hero" className="w-full h-48 sm:h-64 object-cover" />
-      )}
-      <div className="mx-auto max-w-4xl space-y-8 py-8 px-4">
-        {visibleSections.map((section) => (
-          <SectionBlock key={section.id} section={section} accentColor={publicTheme.accentColor} />
-        ))}
-      </div>
+    <div className="space-y-8">
+      {visibleSections.map((section) => (
+        <SectionBlock key={section.id} section={section} accentColor={publicTheme.accentColor} />
+      ))}
     </div>
   );
 }
@@ -55,16 +39,21 @@ function SectionBlock({ section, accentColor }: { section: CafePageSection; acce
   const hasButton = buttonLabel && buttonUrl;
 
   return (
-    <div className="rounded-lg border p-6" style={{ borderColor: accentColor }}>
-      {section.publishedTitle && <h2 className="text-2xl font-bold mb-3">{section.publishedTitle}</h2>}
-      {text && <p className="text-base leading-relaxed">{text}</p>}
+    <div
+      className="rounded-2xl border p-6 md:p-8 transition-all"
+      style={{ borderColor: `${accentColor}20`, backgroundColor: `${accentColor}03` }}
+    >
+      {section.publishedTitle && (
+        <h3 className="text-xl md:text-2xl font-black mb-4 tracking-tight">{section.publishedTitle}</h3>
+      )}
+      {text && <p className="text-sm md:text-base leading-relaxed opacity-90 whitespace-pre-wrap">{text}</p>}
       {imageUrl && (
-        <img src={imageUrl} alt="" className="mt-4 h-48 w-full rounded-lg object-cover" />
+        <img src={imageUrl} alt="" className="mt-6 h-56 md:h-72 w-full rounded-xl object-cover shadow-sm" />
       )}
       {hasButton && (
         <a
           href={buttonUrl}
-          className="mt-4 inline-block rounded px-6 py-2.5 text-sm font-medium text-white transition hover:opacity-90"
+          className="mt-6 inline-flex h-11 items-center justify-center rounded-xl px-6 py-2.5 text-sm font-bold text-white transition hover:opacity-90 shadow-md active:scale-95"
           style={{ backgroundColor: accentColor }}
         >
           {buttonLabel}
