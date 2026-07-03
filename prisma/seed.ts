@@ -1,6 +1,7 @@
 import { PrismaClient, UserRole, OptionType } from "../lib/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! });
 const db = new PrismaClient({ adapter });
@@ -10,13 +11,15 @@ function qrToken(): string {
 }
 
 async function seed() {
+  const passwordHash = await bcrypt.hash("password123", 12);
+
   await db.user.upsert({
     where: { email: "admin@coffeeqr.app" },
     update: {},
     create: {
       email: "admin@coffeeqr.app",
       name: "Platform Admin",
-      passwordHash: "",
+      passwordHash,
       role: UserRole.PLATFORM_ADMIN,
     },
   });
@@ -41,8 +44,20 @@ async function seed() {
     create: {
       email: "owner@democoffee.com",
       name: "Cafe Owner",
-      passwordHash: "",
+      passwordHash,
       role: UserRole.CAFE_OWNER,
+      cafeId: cafe.id,
+    },
+  });
+
+  await db.user.upsert({
+    where: { email: "staff@democoffee.com" },
+    update: {},
+    create: {
+      email: "staff@democoffee.com",
+      name: "Cafe Staff",
+      passwordHash,
+      role: UserRole.CAFE_STAFF,
       cafeId: cafe.id,
     },
   });
