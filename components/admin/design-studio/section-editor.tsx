@@ -5,11 +5,19 @@ import type { CafePageSection } from "@/lib/generated/prisma/client";
 import { createSection, updateSection } from "@/lib/api/admin-design-studio-client";
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Bold, Italic, List, ListOrdered, Strikethrough } from 'lucide-react';
+import Image from '@tiptap/extension-image';
+import LinkExtension from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
+import { Bold, Italic, List, ListOrdered, Strikethrough, AlignLeft, AlignCenter, AlignRight, Link2, Image as ImageIcon } from 'lucide-react';
 
 const RichTextEditor = ({ content, onChange }: { content: string, onChange: (val: string) => void }) => {
   const editor = useEditor({
-    extensions: [StarterKit],
+    extensions: [
+      StarterKit,
+      Image,
+      LinkExtension.configure({ openOnClick: false }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+    ],
     content,
     onUpdate: ({ editor }) => {
       onChange(editor.getHTML())
@@ -27,6 +35,19 @@ const RichTextEditor = ({ content, onChange }: { content: string, onChange: (val
         <div className="w-px h-5 bg-stone-300 mx-1" />
         <button type="button" onClick={() => editor.chain().focus().toggleBulletList().run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('bulletList') ? 'bg-stone-300' : ''}`}><List className="w-4 h-4" /></button>
         <button type="button" onClick={() => editor.chain().focus().toggleOrderedList().run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('orderedList') ? 'bg-stone-300' : ''}`}><ListOrdered className="w-4 h-4" /></button>
+        <div className="w-px h-5 bg-stone-300 mx-1" />
+        <button type="button" onClick={() => editor.chain().focus().setTextAlign('left').run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive({ textAlign: 'left' }) ? 'bg-stone-300' : ''}`}><AlignLeft className="w-4 h-4" /></button>
+        <button type="button" onClick={() => editor.chain().focus().setTextAlign('center').run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive({ textAlign: 'center' }) ? 'bg-stone-300' : ''}`}><AlignCenter className="w-4 h-4" /></button>
+        <button type="button" onClick={() => editor.chain().focus().setTextAlign('right').run()} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive({ textAlign: 'right' }) ? 'bg-stone-300' : ''}`}><AlignRight className="w-4 h-4" /></button>
+        <div className="w-px h-5 bg-stone-300 mx-1" />
+        <button type="button" onClick={() => {
+          const url = window.prompt('URL')
+          if (url) editor.chain().focus().setLink({ href: url }).run()
+        }} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700 ${editor.isActive('link') ? 'bg-stone-300' : ''}`}><Link2 className="w-4 h-4" /></button>
+        <button type="button" onClick={() => {
+          const url = window.prompt('Image URL')
+          if (url) editor.chain().focus().setImage({ src: url }).run()
+        }} className={`p-1.5 rounded hover:bg-stone-200 text-stone-700`}><ImageIcon className="w-4 h-4" /></button>
       </div>
       <EditorContent editor={editor} className="p-3 prose prose-sm max-w-none min-h-[120px] max-h-[400px] overflow-y-auto outline-none focus:outline-none" />
     </div>
