@@ -11,6 +11,7 @@ import {
   Palette,
   LogOut,
   Users,
+  BarChart2,
 } from "lucide-react";
 import { canManageMenu, canManageTables, canManageSettings, canManageDesignStudio } from "@/lib/permissions";
 
@@ -29,6 +30,7 @@ export function AdminSidebar({ cafeName, userName, userRole }: AdminSidebarProps
     { href: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
     { href: "/admin/customers", label: "Customers", icon: Users },
+    { href: "/admin/analytics", label: "Analytics", icon: BarChart2 },
     ...(canManageMenu(user)
       ? [{ href: "/admin/menu", label: "Menu", icon: Menu }]
       : []),
