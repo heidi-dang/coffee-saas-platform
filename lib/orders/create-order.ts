@@ -37,7 +37,13 @@ export async function createOrder(
     return failure("Pickup ordering is currently disabled");
   }
 
-  const tableResult = await resolveTable(cafe.id, input.tableToken, input.type);
+  const tableResult = await resolveTable(
+    cafe.id,
+    input.tableToken,
+    input.type,
+    input.tableTimestamp,
+    input.tableSignature
+  );
   if (tableResult.error) return failure(tableResult.error);
   const tableId = tableResult.tableId;
 

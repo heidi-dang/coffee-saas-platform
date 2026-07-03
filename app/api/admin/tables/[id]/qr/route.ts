@@ -27,7 +27,11 @@ export async function GET(
     return NextResponse.json({ error: "Cafe not found" }, { status: 404 });
   }
 
-  const qrUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/cafe/${cafe.slug}/order?tableToken=${table.qrToken}`;
+  const timestamp = Date.now();
+  const { generateTableSignature } = await import("@/lib/auth/table-token");
+  const signature = generateTableSignature(user.cafeId, table.tableNumber, timestamp);
+
+  const qrUrl = `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/cafe/${cafe.slug}/order?tableToken=${table.qrToken}&t=${timestamp}&s=${signature}`;
 
   return NextResponse.json({ qrUrl, tableNumber: table.tableNumber });
 }

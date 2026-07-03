@@ -13,6 +13,8 @@ import { CartSummary } from "@/components/cart/cart-summary";
 interface CheckoutFormProps {
   cafeSlug: string;
   tableToken?: string;
+  tableTimestamp?: number;
+  tableSignature?: string;
   settings: {
     acceptDineIn: boolean;
     acceptTakeaway: boolean;
@@ -25,6 +27,8 @@ interface CheckoutFormProps {
 export function CheckoutForm({
   cafeSlug,
   tableToken,
+  tableTimestamp,
+  tableSignature,
   settings,
 }: CheckoutFormProps) {
   const router = useRouter();
@@ -61,6 +65,8 @@ export function CheckoutForm({
         body: JSON.stringify({
           cafeSlug,
           tableToken: tableToken || undefined,
+          tableTimestamp: tableTimestamp || undefined,
+          tableSignature: tableSignature || undefined,
           type: orderType,
           customerName: customerName || undefined,
           customerPhone: customerPhone || undefined,

@@ -5,7 +5,7 @@ import { CheckoutForm } from "@/components/checkout/checkout-form";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ tableToken?: string }>;
+  searchParams: Promise<{ tableToken?: string; t?: string; s?: string }>;
 }
 
 export default async function CheckoutPage({
@@ -13,7 +13,9 @@ export default async function CheckoutPage({
   searchParams,
 }: PageProps) {
   const { slug } = await params;
-  const { tableToken } = await searchParams;
+  const { tableToken, t, s } = await searchParams;
+  const tableTimestamp = t ? parseInt(t, 10) : undefined;
+  const tableSignature = s || undefined;
 
   const cafe = await db.cafe.findUnique({
     where: { slug, isActive: true },
@@ -55,6 +57,8 @@ export default async function CheckoutPage({
       <CheckoutForm
         cafeSlug={cafe.slug}
         tableToken={tableToken}
+        tableTimestamp={tableTimestamp}
+        tableSignature={tableSignature}
         settings={{
           acceptDineIn: cafe.settings?.acceptDineIn ?? true,
           acceptTakeaway: cafe.settings?.acceptTakeaway ?? true,
