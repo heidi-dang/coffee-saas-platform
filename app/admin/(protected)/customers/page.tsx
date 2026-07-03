@@ -19,10 +19,6 @@ export default function AdminCustomersPage() {
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchCustomers();
-  }, []);
-
   async function fetchCustomers() {
     try {
       const res = await fetch("/api/admin/customers");
@@ -36,6 +32,10 @@ export default function AdminCustomersPage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
 
   async function handleUpdateStamps(profileId: string, amount: number) {
     setUpdatingId(profileId);
@@ -91,7 +91,7 @@ export default function AdminCustomersPage() {
         <div className="text-center py-16 bg-stone-50 rounded-2xl border border-stone-200/50">
           <UserCheck className="h-10 w-10 text-stone-300 mx-auto mb-4" />
           <h3 className="font-bold text-stone-850 mb-1">No profiles found</h3>
-          <p className="text-stone-500 text-xs">When customers order with their phone number, they'll appear here.</p>
+          <p className="text-stone-500 text-xs">When customers order with their phone number, they&apos;ll appear here.</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-sm">
