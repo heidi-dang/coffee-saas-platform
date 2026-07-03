@@ -28,6 +28,10 @@ export function canManageTables(user: SessionUser): boolean {
   return ["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role);
 }
 
+export function canManageDesignStudio(user: SessionUser): boolean {
+  return ["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role);
+}
+
 export function canManageSettings(user: SessionUser): boolean {
   return ["PLATFORM_ADMIN", "CAFE_OWNER"].includes(user.role);
 }

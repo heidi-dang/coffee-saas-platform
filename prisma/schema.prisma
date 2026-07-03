@@ -72,6 +72,8 @@ model Cafe {
   tables    CafeTable[]
   orders    Order[]
   settings  CafeSettings?
+  theme     CafeTheme?
+  sections  CafePageSection[]
 }
 
 model CafeSettings {
@@ -192,4 +194,57 @@ model OrderItem {
   totalCents      Int
   optionsSnapshot Json?
   notes           String?
+}
+
+enum PageSectionType {
+  HERO
+  ABOUT
+  FEATURED_MENU
+  GALLERY
+  ANNOUNCEMENT
+  CONTACT
+  CUSTOM_TEXT
+}
+
+model CafeTheme {
+  id              String   @id @default(cuid())
+  cafeId          String   @unique
+  cafe            Cafe     @relation(fields: [cafeId], references: [id])
+  primaryColor    String   @default("#111827")
+  accentColor     String   @default("#f59e0b")
+  backgroundColor String   @default("#ffffff")
+  textColor       String   @default("#111827")
+  logoUrl         String?
+  heroImageUrl    String?
+  fontFamily      String   @default("system")
+  draftData       Json?
+  publishedData   Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([cafeId])
+}
+
+model CafePageSection {
+  id                   String            @id @default(cuid())
+  cafeId               String
+  cafe                 Cafe              @relation(fields: [cafeId], references: [id])
+  type                 PageSectionType
+  draftTitle           String?
+  draftContent         Json
+  draftIsVisible       Boolean           @default(true)
+  draftDeletedAt       DateTime?
+  publishedTitle       String?
+  publishedContent     Json?
+  publishedIsVisible   Boolean           @default(false)
+  publishedAt          DateTime?
+  publishedDeletedAt   DateTime?
+  sortOrder            Int               @default(0)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  @@index([cafeId, draftDeletedAt])
+  @@index([cafeId, publishedAt])
+  @@index([cafeId, publishedDeletedAt])
+  @@index([cafeId, sortOrder])
 }

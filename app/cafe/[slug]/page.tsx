@@ -1,11 +1,18 @@
 import { db } from "@/lib/db";
 import { notFound } from "next/navigation";
+import { PublicPageRenderer } from "@/components/cafe/public-page-renderer";
+import { hasPublishedDesign } from "@/lib/design-studio/helpers";
 import type { Prisma } from "@/lib/generated/prisma/client";
 
 type CafeWithMenu = Prisma.CafeGetPayload<{
   include: {
     categories: {
       include: { items: { include: { options: { include: { values: true } } } } };
+    };
+    theme: true;
+    sections: {
+      where: { publishedAt: { not: null }; publishedDeletedAt: null };
+      orderBy: { sortOrder: "asc" };
     };
   };
 }>;
@@ -42,11 +49,47 @@ export default async function CafePage({ params }: PageProps) {
           },
         },
       },
+      theme: true,
+      sections: {
+        where: { publishedAt: { not: null }, publishedDeletedAt: null },
+        orderBy: { sortOrder: "asc" },
+      },
     },
   });
 
   if (!cafe) {
     notFound();
+  }
+
+  if (hasPublishedDesign(cafe.theme, cafe.sections) && cafe.theme) {
+    return (
+      <>
+        <PublicPageRenderer theme={cafe.theme} sections={cafe.sections} />
+        <div className="mx-auto max-w-4xl px-4 pb-8">
+          <section className="mt-8">
+            <h2 className="text-2xl font-semibold mb-4">Menu</h2>
+            {cafe.categories.map((cat) => (
+              <div key={cat.id} className="mb-8">
+                <h3 className="text-xl font-medium mb-3">{cat.name}</h3>
+                <div className="grid gap-4">
+                  {cat.items.map((item) => (
+                    <div key={item.id} className="border rounded-lg p-4 flex items-start justify-between">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        {item.description && <p className="text-sm text-gray-500 mt-1">{item.description}</p>}
+                      </div>
+                      <span className="font-semibold whitespace-nowrap ml-4">
+                        ${(item.priceCents / 100).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+        </div>
+      </>
+    );
   }
 
   return (

@@ -8,9 +8,10 @@ import {
   Menu,
   QrCode,
   Settings,
+  Palette,
   LogOut,
 } from "lucide-react";
-import { canManageMenu, canManageTables, canManageSettings } from "@/lib/permissions";
+import { canManageMenu, canManageTables, canManageSettings, canManageDesignStudio } from "@/lib/permissions";
 
 interface AdminSidebarProps {
   cafeName: string | null;
@@ -34,6 +35,9 @@ export function AdminSidebar({ cafeName, userName, userRole }: AdminSidebarProps
       : []),
     ...(canManageSettings(user)
       ? [{ href: "/admin/settings", label: "Settings", icon: Settings }]
+      : []),
+    ...(canManageDesignStudio(user)
+      ? [{ href: "/admin/design-studio", label: "Design Studio", icon: Palette }]
       : []),
   ];
 
