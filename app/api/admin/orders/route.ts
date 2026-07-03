@@ -1,6 +1,6 @@
 import { requireCafeUser } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, serverError } from "@/lib/api/response";
+import { ok, unauthorized, serverError, handleAuthError } from "@/lib/api/response";
 import { getActiveStatuses } from "@/lib/orders/status-machine";
 
 export async function GET(request: Request) {
@@ -28,9 +28,7 @@ export async function GET(request: Request) {
 
     return ok({ orders });
   } catch (error: any) {
-    if (error.name === "AuthError") {
-      return unauthorized(error.message);
-    }
+    return handleAuthError(error);
     return serverError(error);
   }
 }

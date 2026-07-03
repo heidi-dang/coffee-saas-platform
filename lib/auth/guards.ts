@@ -16,7 +16,7 @@ export async function requireCafeUser(): Promise<SessionUser & { cafeId: string 
 export async function requireMenuAccess(): Promise<SessionUser & { cafeId: string }> {
   const user = await requireCafeUser();
   if (!["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
-    throw new AuthError("Unauthorized", 401);
+    throw new AuthError("Forbidden", 403);
   }
   return user;
 }
@@ -24,7 +24,7 @@ export async function requireMenuAccess(): Promise<SessionUser & { cafeId: strin
 export async function requireTableAccess(): Promise<SessionUser & { cafeId: string }> {
   const user = await requireCafeUser();
   if (!["PLATFORM_ADMIN", "CAFE_OWNER", "CAFE_MANAGER"].includes(user.role)) {
-    throw new AuthError("Unauthorized", 401);
+    throw new AuthError("Forbidden", 403);
   }
   return user;
 }
@@ -32,7 +32,7 @@ export async function requireTableAccess(): Promise<SessionUser & { cafeId: stri
 export async function requireSettingsAccess(): Promise<SessionUser & { cafeId: string }> {
   const user = await requireCafeUser();
   if (!["PLATFORM_ADMIN", "CAFE_OWNER"].includes(user.role)) {
-    throw new AuthError("Unauthorized", 401);
+    throw new AuthError("Forbidden", 403);
   }
   return user;
 }

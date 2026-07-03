@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AuthError } from "@/lib/auth/guards";
 
 export function ok<T>(data: T, status = 200) {
   return NextResponse.json(data, { status });
@@ -25,4 +26,12 @@ export function notFound(error = "Not found") {
 export function serverError(error?: unknown) {
   console.error("Server error:", error);
   return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+}
+
+export function handleAuthError(err: unknown) {
+  if (err instanceof AuthError) {
+    if (err.status === 403) return forbidden(err.message);
+    return unauthorized(err.message);
+  }
+  return serverError(err);
 }

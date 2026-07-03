@@ -1,6 +1,6 @@
 import { requireTableAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, badRequest, serverError } from "@/lib/api/response";
+import { ok, unauthorized, badRequest, serverError, handleAuthError } from "@/lib/api/response";
 import crypto from "node:crypto";
 
 function generateQrToken(): string {
@@ -24,9 +24,7 @@ export async function GET() {
 
     return ok({ tables, cafeSlug: cafe?.slug || "" });
   } catch (error: any) {
-    if (error.name === "AuthError") {
-      return unauthorized(error.message);
-    }
+    return handleAuthError(error);
     return serverError(error);
   }
 }
@@ -50,9 +48,7 @@ export async function POST(request: Request) {
 
     return ok({ table });
   } catch (error: any) {
-    if (error.name === "AuthError") {
-      return unauthorized(error.message);
-    }
+    return handleAuthError(error);
     return serverError(error);
   }
 }

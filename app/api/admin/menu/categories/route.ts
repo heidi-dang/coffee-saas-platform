@@ -1,6 +1,6 @@
 import { requireMenuAccess } from "@/lib/auth/guards";
 import { db } from "@/lib/db";
-import { ok, unauthorized, badRequest, serverError } from "@/lib/api/response";
+import { ok, unauthorized, badRequest, serverError, handleAuthError } from "@/lib/api/response";
 
 export async function GET() {
   try {
@@ -13,9 +13,7 @@ export async function GET() {
 
     return ok({ categories });
   } catch (error: any) {
-    if (error.name === "AuthError") {
-      return unauthorized(error.message);
-    }
+    return handleAuthError(error);
     return serverError(error);
   }
 }
@@ -45,9 +43,7 @@ export async function POST(request: Request) {
 
     return ok({ category });
   } catch (error: any) {
-    if (error.name === "AuthError") {
-      return unauthorized(error.message);
-    }
+    return handleAuthError(error);
     return serverError(error);
   }
 }

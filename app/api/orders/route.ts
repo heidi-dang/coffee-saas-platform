@@ -13,16 +13,16 @@ export async function POST(request: Request) {
 
     const result = await createOrder(parsed.data);
 
-    if (result.error) {
+    if (!result.ok) {
       return badRequest(result.error);
     }
 
     return ok({
-      orderId: result.orderId,
-      orderNumber: result.orderNumber,
-      status: result.status,
-      paymentStatus: result.paymentStatus,
-      totalCents: result.totalCents,
+      orderId: result.data.orderId,
+      orderNumber: result.data.orderNumber,
+      status: result.data.status,
+      paymentStatus: result.data.paymentStatus,
+      totalCents: result.data.totalCents,
     });
   } catch (error) {
     return serverError(error);

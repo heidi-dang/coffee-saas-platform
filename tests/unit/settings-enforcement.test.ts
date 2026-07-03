@@ -1,22 +1,5 @@
 import { describe, expect, it } from "vitest";
-
-// Simulate server-side cafe settings enforcement
-function validateOrderType(type: string, settings: {
-  acceptDineIn: boolean;
-  acceptTakeaway: boolean;
-  acceptPickup: boolean;
-}): string | null {
-  if (type === "DINE_IN" && !settings.acceptDineIn) {
-    return "Dine-in ordering is currently disabled";
-  }
-  if (type === "TAKEAWAY" && !settings.acceptTakeaway) {
-    return "Takeaway ordering is currently disabled";
-  }
-  if (type === "PICKUP" && !settings.acceptPickup) {
-    return "Pickup ordering is currently disabled";
-  }
-  return null;
-}
+import { validateOrderType } from "@/lib/orders/validate-cafe-settings";
 
 describe("Cafe settings enforcement", () => {
   const allEnabled = { acceptDineIn: true, acceptTakeaway: true, acceptPickup: true };

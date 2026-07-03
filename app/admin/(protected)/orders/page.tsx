@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { fetchOrders, updateOrderStatus } from "@/lib/api/admin-orders-client";
 import type { Order } from "@/lib/api/admin-orders-client";
 import { getAllowedTransitions } from "@/lib/orders/status-machine";
+import type { OrderStatus } from "@/lib/orders/status-machine";
 
 const statusLanes = ["NEW", "ACCEPTED", "PREPARING", "READY", "COMPLETED", "CANCELLED"];
 
@@ -16,23 +17,24 @@ const statusColors: Record<string, string> = {
   CANCELLED: "border-red-400",
 };
 
-function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) {
-  async function handleStatus(newStatus: string) {
-    try {
-      await updateOrderStatus(order.id, newStatus);
-      onUpdate();
-    } catch (err) {
-      console.error("Failed to update order:", err);
-    }
-  }
-
+function OrderCard({
+  order,
+  error,
+  updating,
+  onUpdate,
+}: {
+  order: Order;
+  error: string | null;
+  updating: boolean;
+  onUpdate: (newStatus: string) => void;
+}) {
   const created = new Date(order.createdAt);
   const timeStr = created.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  const allowedActions = getAllowedTransitions(order.status as any);
+  const allowedActions = getAllowedTransitions((order.status as OrderStatus));
 
   return (
     <div
@@ -66,7 +68,7 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
             </p>
             {item.optionsSnapshot && item.optionsSnapshot.length > 0 && (
               <p className="text-xs text-muted-foreground ml-3">
-                {item.optionsSnapshot.map((o: any) => o.valueName).join(", ")}
+                {(item.optionsSnapshot as Array<{ valueName: string }>).map((o) => o.valueName).join(", ")}
               </p>
             )}
             {item.notes && (
@@ -99,15 +101,20 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
         </span>
       </div>
 
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 rounded px-2 py-1">{error}</p>
+      )}
+
       {allowedActions.length > 0 && (
         <div className="flex flex-wrap gap-1 pt-1 border-t">
           {allowedActions.map((action) => (
             <button
               key={action}
-              onClick={() => handleStatus(action)}
-              className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80 transition-colors"
+              onClick={() => onUpdate(action)}
+              disabled={updating}
+              className="text-xs px-2 py-1 rounded bg-accent hover:bg-accent/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {action === "CANCELLED"
+              {updating ? "..." : action === "CANCELLED"
                 ? "Cancel"
                 : action.charAt(0) + action.slice(1).toLowerCase()}
             </button>
@@ -121,13 +128,15 @@ function OrderCard({ order, onUpdate }: { order: Order; onUpdate: () => void }) 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [updating, setUpdating] = useState<Record<string, boolean>>({});
 
   const fetchData = useCallback(async () => {
     try {
       const data = await fetchOrders(true);
       setOrders(data.orders);
     } catch {
-      // ignore polling errors
+      // polling errors silently ignored
     } finally {
       setLoading(false);
     }
@@ -138,6 +147,22 @@ export default function AdminOrdersPage() {
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
   }, [fetchData]);
+
+  async function handleStatusUpdate(orderId: string, newStatus: string) {
+    setUpdating((prev) => ({ ...prev, [orderId]: true }));
+    setErrors((prev) => ({ ...prev, [orderId]: "" }));
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      await fetchData();
+    } catch (err: any) {
+      setErrors((prev) => ({
+        ...prev,
+        [orderId]: err?.message || "Failed to update order. Please try again.",
+      }));
+    } finally {
+      setUpdating((prev) => ({ ...prev, [orderId]: false }));
+    }
+  }
 
   const grouped = statusLanes.reduce(
     (acc, status) => {
@@ -167,7 +192,9 @@ export default function AdminOrdersPage() {
                   <OrderCard
                     key={order.id}
                     order={order}
-                    onUpdate={fetchData}
+                    error={errors[order.id] ?? null}
+                    updating={!!updating[order.id]}
+                    onUpdate={(newStatus) => handleStatusUpdate(order.id, newStatus)}
                   />
                 ))}
               </div>
