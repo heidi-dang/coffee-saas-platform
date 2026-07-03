@@ -160,6 +160,22 @@ model CafeTable {
   @@index([cafeId, isActive])
 }
 
+model Customer {
+  id                      String    @id @default(cuid())
+  email                   String    @unique
+  name                    String?
+  passwordHash            String
+  isVerified              Boolean   @default(false)
+  verificationToken       String?   @unique
+  verificationTokenExpiry DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  orders                  Order[]
+
+  @@index([email])
+  @@index([verificationToken])
+}
+
 model Order {
   id              String       @id @default(cuid())
   cafeId          String
@@ -170,6 +186,8 @@ model Order {
   paymentStatus   PaymentStatus @default(UNPAID)
   tableId         String?
   table           CafeTable?   @relation(fields: [tableId], references: [id])
+  customerId      String?
+  customer        Customer?    @relation(fields: [customerId], references: [id])
   customerName    String?
   customerPhone   String?
   customerNote    String?
@@ -187,6 +205,7 @@ model Order {
   @@index([cafeId, status])
   @@index([cafeId, createdAt])
   @@index([tableId])
+  @@index([customerId])
 }
 
 model OrderItem {

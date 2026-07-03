@@ -8,6 +8,7 @@ import { CartDrawer } from "@/components/cart/cart-drawer";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Search, Coffee, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { CustomerAuthButton } from "@/components/customer/customer-auth-button";
 
 interface OptionValue {
   id: string;
@@ -110,6 +111,9 @@ export function OrderClient({
               )}
             </div>
           </div>
+
+          {/* Customer auth button */}
+          <CustomerAuthButton cafeSlug={cafeSlug} />
         </div>
       </header>
 

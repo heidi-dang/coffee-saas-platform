@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -9,6 +10,14 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useCart } from "@/components/cart/cart-provider";
 import { CartSummary } from "@/components/cart/cart-summary";
+import { CheckCircle, AlertCircle, User } from "lucide-react";
+
+interface CustomerSession {
+  id: string;
+  email: string;
+  name: string | null;
+  isVerified: boolean;
+}
 
 interface CheckoutFormProps {
   cafeSlug: string;
@@ -44,6 +53,20 @@ export function CheckoutForm({
   const [customerNote, setCustomerNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [customer, setCustomer] = useState<CustomerSession | null>(null);
+
+  // Pre-fill from customer session
+  useEffect(() => {
+    fetch("/api/customer/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.customer) {
+          setCustomer(d.customer);
+          if (d.customer.name) setCustomerName(d.customer.name);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   if (items.length === 0) {
     return (
@@ -148,6 +171,60 @@ export function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+
+      {/* Customer session banner */}
+      {customer ? (
+        <div className={`flex items-start gap-3 p-3.5 rounded-xl border text-sm ${
+          customer.isVerified
+            ? "border-green-200 bg-green-50"
+            : "border-amber-200 bg-amber-50"
+        }`}>
+          <div className={`mt-0.5 shrink-0 ${customer.isVerified ? "text-green-600" : "text-amber-600"}`}>
+            {customer.isVerified
+              ? <CheckCircle className="h-4 w-4" />
+              : <AlertCircle className="h-4 w-4" />}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className={`font-semibold text-xs ${customer.isVerified ? "text-green-800" : "text-amber-800"}`}>
+              {customer.isVerified ? "Signed in" : "Signed in — email not verified"}
+            </p>
+            <p className={`text-[11px] truncate mt-0.5 ${customer.isVerified ? "text-green-700" : "text-amber-700"}`}>
+              {customer.email}
+            </p>
+            {!customer.isVerified && (
+              <Link
+                href={`/cafe/${cafeSlug}/auth/verify-email?email=${encodeURIComponent(customer.email)}`}
+                className="text-[11px] font-bold text-amber-700 hover:text-amber-900 underline underline-offset-2 mt-1 inline-block"
+              >
+                Verify your email →
+              </Link>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 p-3.5 rounded-xl border border-stone-200 bg-stone-50 text-sm">
+          <User className="h-4 w-4 text-stone-400 shrink-0" />
+          <div className="flex-1">
+            <p className="text-xs text-stone-600">
+              <Link
+                href={`/cafe/${cafeSlug}/auth/login?redirect=${encodeURIComponent(`/cafe/${cafeSlug}/order/checkout`)}`}
+                className="font-bold text-amber-700 hover:text-amber-900 underline underline-offset-2"
+              >
+                Sign in
+              </Link>{" "}
+              or{" "}
+              <Link
+                href={`/cafe/${cafeSlug}/auth/signup?redirect=${encodeURIComponent(`/cafe/${cafeSlug}/order/checkout`)}`}
+                className="font-bold text-amber-700 hover:text-amber-900 underline underline-offset-2"
+              >
+                create account
+              </Link>{" "}
+              to save your order history
+            </p>
+          </div>
+        </div>
+      )}
+
       <div>
         <Label className="text-base font-semibold">Order Type</Label>
         <RadioGroup
