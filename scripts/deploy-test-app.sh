@@ -60,8 +60,8 @@ echo "==> Installing dependencies..."
 pnpm install --frozen-lockfile
 
 # ── Run checks ──────────────────────────────────────────────────────
-echo "==> Running tests..."
-pnpm test
+echo "==> Generating Prisma client..."
+pnpm db:generate
 
 echo "==> Running linter..."
 pnpm lint
@@ -69,8 +69,8 @@ pnpm lint
 echo "==> Running typecheck..."
 pnpm typecheck
 
-echo "==> Generating Prisma client..."
-pnpm db:generate
+echo "==> Running tests..."
+pnpm test
 
 echo "==> Building application..."
 pnpm build
